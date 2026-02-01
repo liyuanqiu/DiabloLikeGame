@@ -1,5 +1,5 @@
 #include "Pathfinder.h"
-#include "../Map.h"
+#include "Common/Map.h"
 #include "OccupancyMap.h"
 #include <cmath>
 #include <cstdint>

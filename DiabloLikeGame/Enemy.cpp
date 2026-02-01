@@ -1,6 +1,6 @@
 #include "Enemy.h"
 #include "Player.h"
-#include "Map.h"
+#include "Common/Map.h"
 #include "World/Pathfinder.h"
 #include "World/OccupancyMap.h"
 #include <cmath>

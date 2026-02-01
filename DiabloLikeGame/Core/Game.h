@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Map.h"
+#include "Common/Map.h"
 #include "../Player.h"
 #include "../Enemy.h"
 #include "../Camera/Camera.h"

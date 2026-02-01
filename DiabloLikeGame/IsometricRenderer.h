@@ -1,7 +1,7 @@
 #pragma once
 
 #include "raylib.h"
-#include "Map.h"
+#include "Common/Map.h"
 #include "Core/Direction.h"
 #include <vector>
 

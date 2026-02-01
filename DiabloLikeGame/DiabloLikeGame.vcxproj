@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -105,6 +105,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -120,6 +121,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,7 +143,9 @@
     <ClCompile Include="Input\KeyboardInput.cpp" />
     <ClCompile Include="Input\MouseInput.cpp" />
     <ClCompile Include="IsometricRenderer.cpp" />
-    <ClCompile Include="Map.cpp" />
+    <ClCompile Include="Net\GameDataClientFactory.cpp" />
+    <ClCompile Include="Net\GameDataLocalClient.cpp" />
+    <ClCompile Include="Net\Json.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="World\MapGenerator.cpp" />
     <ClCompile Include="World\Pathfinder.cpp" />
@@ -163,7 +167,10 @@
     <ClInclude Include="Input\KeyboardInput.h" />
     <ClInclude Include="Input\MouseInput.h" />
     <ClInclude Include="IsometricRenderer.h" />
-    <ClInclude Include="Map.h" />
+    <ClInclude Include="Net\GameDataClientFactory.h" />
+    <ClInclude Include="Net\GameDataLocalClient.h" />
+    <ClInclude Include="Net\IGameDataClient.h" />
+    <ClInclude Include="Net\Json.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="World\MapGenerator.h" />
     <ClInclude Include="World\OccupancyMap.h" />
@@ -178,6 +185,11 @@
     <None Include="config\player.ini" />
     <None Include="config\tiles.ini" />
     <None Include="maps\default.map" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.vcxproj">
+      <Project>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -5,19 +5,21 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-#include <optional>
 
-// Loads and manages game configuration
+// Forward declaration
+class IGameDataClient;
+
+// Loads and manages game configuration via IGameDataClient
 class ConfigManager {
 public:
     static ConfigManager& Instance();
     
-    // Load all configuration files
-    bool LoadAll(std::string_view configDir = "config");
+    // Initialize using game data client (loads all config)
+    // If client is null, uses GameDataClientFactory::GetInstance()
+    bool Initialize(IGameDataClient* client = nullptr);
     
-    // Load specific configs
-    bool LoadPlayerConfig(std::string_view filepath);
-    bool LoadEnemyType(std::string_view filepath);
+    // Legacy method - now uses GameDataLocalClient internally
+    bool LoadAll(std::string_view configDir = "Config");
     
     // Get configurations
     [[nodiscard]] const PlayerConfig& GetPlayerConfig() const { return m_playerConfig; }
@@ -30,8 +32,11 @@ public:
 private:
     ConfigManager() = default;
     
+    // Parse JSON responses into config structures
+    bool ParsePlayerConfig(const std::string& json);
+    bool ParseEnemyTypes(const std::string& json);
+    
     PlayerConfig m_playerConfig;
     std::unordered_map<std::string, EnemyTypeConfig> m_enemyTypes;
     std::vector<std::string> m_enemyTypeIds;
-    EnemyTypeConfig m_defaultEnemyType;  // Fallback
 };

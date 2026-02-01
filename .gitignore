@@ -85,6 +85,21 @@ coverage_report.xml
 # Temporary test files
 test_*.ini
 test_*.map
+test_*.txt
+
+# Generated map files (from MapGenerator)
+map.txt
+
+# Solution backup files
+*.sln.new
 
 # Maps (generated or user-created, optional)
 # maps/*.map
+
+# Per-project intermediate directories
+Common/x64/
+Common/bin/
+MapGenerator/x64/
+MapGenerator/bin/
+DiabloLikeGame/x64/
+DiabloLikeGame/Tests/x64/

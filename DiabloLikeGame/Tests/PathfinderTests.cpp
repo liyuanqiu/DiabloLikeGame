@@ -1,6 +1,6 @@
 #include "CppUnitTest.h"
 #include "../World/Pathfinder.h"
-#include "../Map.h"
+#include "Common/Map.h"
 #include <cmath>
 #include <set>
 

@@ -12,7 +12,6 @@ void Map::Init(std::string name, int width, int height, std::vector<TileType> da
 
 bool Map::LoadFromFile(std::string_view filename)
 {
-    // Convert string_view to string to ensure null-termination for C APIs
     const std::string filepath(filename);
     std::ifstream file(filepath);
     if (!file.is_open()) {
@@ -23,7 +22,6 @@ bool Map::LoadFromFile(std::string_view filename)
     
     // Read map name
     if (std::getline(file, line)) {
-        // Parse "name=value" format
         if (auto pos = line.find('='); pos != std::string::npos) {
             m_name = line.substr(pos + 1);
         }
@@ -46,7 +44,7 @@ bool Map::LoadFromFile(std::string_view filename)
     // Skip the "data=" line
     std::getline(file, line);
 
-    // Initialize flat map data - single allocation
+    // Initialize flat map data
     m_data.clear();
     m_data.resize(static_cast<size_t>(m_width * m_height), TileType::Empty);
 
@@ -67,7 +65,6 @@ bool Map::LoadFromFile(std::string_view filename)
 
 bool Map::SaveToFile(std::string_view filename) const
 {
-    // Convert string_view to string to ensure null-termination for C APIs
     const std::string filepath(filename);
     std::ofstream file(filepath);
     if (!file.is_open()) {
