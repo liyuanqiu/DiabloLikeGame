@@ -70,6 +70,7 @@ void Entity::StartPunch() noexcept
     if (!m_isPunching && m_isAlive) {
         m_isPunching = true;
         m_punchProgress = 0.0f;
+        m_punchHitProcessed = false;
     }
 }
 
@@ -78,7 +79,7 @@ void Entity::UpdatePunch(float deltaTime) noexcept
     if (!m_isPunching) return;
     
     // Progress the punch animation
-    m_punchProgress += deltaTime / PUNCH_DURATION;
+    m_punchProgress += deltaTime / m_punchDuration;
     
     if (m_punchProgress >= 1.0f) {
         // Punch complete

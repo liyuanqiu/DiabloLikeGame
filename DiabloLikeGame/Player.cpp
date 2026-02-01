@@ -164,8 +164,7 @@ bool Player::TryPunch()
 {
     // Can only punch if not already punching
     if (!IsPunching()) {
-        StartPunch();
-        m_punchHitProcessed = false;  // Reset hit processing for new punch
+        StartPunch();  // StartPunch() already resets hit processing
         return true;
     }
     return false;
@@ -189,7 +188,7 @@ int Player::CalculateDamage(std::mt19937& rng) const
 Enemy* Player::ProcessPunchHit(std::vector<Enemy>& enemies, std::mt19937& rng)
 {
     // Only process hit once per punch, at the peak of the animation (around 50%)
-    if (m_punchHitProcessed || !IsPunching()) {
+    if (IsPunchHitProcessed() || !IsPunching()) {
         return nullptr;
     }
     
@@ -199,7 +198,7 @@ Enemy* Player::ProcessPunchHit(std::vector<Enemy>& enemies, std::mt19937& rng)
         return nullptr;
     }
     
-    m_punchHitProcessed = true;
+    SetPunchHitProcessed(true);
     
     // Calculate target tile based on facing direction
     const int targetX = GetTileX() + DirectionUtil::GetDeltaX(GetFacing());

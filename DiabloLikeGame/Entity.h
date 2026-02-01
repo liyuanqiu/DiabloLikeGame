@@ -33,6 +33,9 @@ public:
     // Attack/Punch state
     [[nodiscard]] bool IsPunching() const noexcept { return m_isPunching; }
     [[nodiscard]] float GetPunchProgress() const noexcept { return m_punchProgress; }
+    [[nodiscard]] bool IsPunchHitProcessed() const noexcept { return m_punchHitProcessed; }
+    void SetPunchHitProcessed(bool processed) noexcept { m_punchHitProcessed = processed; }
+    void SetPunchDuration(float duration) noexcept { m_punchDuration = duration; }
     void StartPunch() noexcept;
     void UpdatePunch(float deltaTime) noexcept;
     
@@ -71,7 +74,8 @@ protected:
     // Punch animation state
     bool m_isPunching{false};
     float m_punchProgress{0.0f};  // 0.0 = start, 1.0 = fully extended, back to 0.0 = retracted
-    static constexpr float PUNCH_DURATION = 0.25f;  // Total punch animation time in seconds
+    float m_punchDuration{0.25f}; // Configurable punch animation time
+    bool m_punchHitProcessed{false};  // Track if current punch has dealt damage
     
     // Health
     int m_health{100};

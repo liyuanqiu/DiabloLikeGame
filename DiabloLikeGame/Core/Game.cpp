@@ -55,6 +55,9 @@ bool Game::Init()
     m_player.Init(spawnX, spawnY, playerConfig.maxHealth);
     m_player.SetMoveSpeed(playerConfig.moveSpeed);
     m_player.SetBaseAttack(playerConfig.baseAttack);
+    m_player.SetCritChance(playerConfig.critChance);
+    m_player.SetCritMultiplier(playerConfig.critMultiplier);
+    m_player.SetPunchDuration(playerConfig.punchDuration);
     
     // Center camera on player at start
     m_camera.CenterOn(static_cast<float>(spawnX), static_cast<float>(spawnY));

@@ -91,7 +91,6 @@ private:
     float m_attackVariation{0.1f};
     float m_attackCooldown{0.0f};
     float m_attackCooldownTime{1.0f};
-    bool m_punchHitProcessed{false};
     
     // Aggression
     AggressionType m_aggressionType{AggressionType::Defensive};

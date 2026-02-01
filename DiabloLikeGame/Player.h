@@ -46,6 +46,8 @@ public:
     // Combat stats
     [[nodiscard]] float GetBaseAttack() const noexcept { return m_baseAttack; }
     void SetBaseAttack(float attack) noexcept { m_baseAttack = attack; }
+    void SetCritChance(float chance) noexcept { m_critChance = chance; }
+    void SetCritMultiplier(float mult) noexcept { m_critMultiplier = mult; }
 
     // Configuration
     void SetMoveSpeed(float speed) noexcept { m_moveSpeed = speed; }
@@ -83,5 +85,4 @@ private:
     float m_baseAttack{20.0f};        // Player base attack
     float m_critChance{0.10f};        // 10% crit chance
     float m_critMultiplier{2.0f};     // 2x damage on crit
-    bool m_punchHitProcessed{false};  // Track if current punch has been processed
 };

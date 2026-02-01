@@ -106,8 +106,7 @@ bool Enemy::TryAttackPlayer(Player* player, std::mt19937& rng)
     
     // Start punch if not already punching and cooldown is ready
     if (!IsPunching() && m_attackCooldown <= 0.0f) {
-        StartPunch();
-        m_punchHitProcessed = false;
+        StartPunch();  // StartPunch() already resets hit processing
         m_attackCooldown = m_attackCooldownTime;
         return true;
     }
@@ -129,10 +128,10 @@ void Enemy::Update(float deltaTime, const Map& map, OccupancyMap& occupancy,
     UpdatePunch(deltaTime);
     
     // Process punch hit at peak of animation
-    if (IsPunching() && !m_punchHitProcessed && player && player->IsAlive()) {
+    if (IsPunching() && !IsPunchHitProcessed() && player && player->IsAlive()) {
         const float progress = GetPunchProgress();
         if (progress >= 0.4f && progress <= 0.6f) {
-            m_punchHitProcessed = true;
+            SetPunchHitProcessed(true);
             
             // Check if player is still in front of us
             const int targetX = GetTileX() + DirectionUtil::GetDeltaX(GetFacing());
