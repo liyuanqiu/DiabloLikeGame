@@ -17,3 +17,8 @@
 ## Project-Specific Rules
 - Custom requirement A
 - Custom requirement B
+
+## Terminal Commands
+- Never run very long multi-line commands in the terminal
+- Keep terminal commands short and simple
+- For file creation/editing, use the appropriate tools instead of PowerShell here-strings or multi-line content

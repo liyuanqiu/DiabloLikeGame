@@ -57,6 +57,14 @@ std::vector<Vector2> Pathfinder::FindPath(int startX, int startY, int endX, int 
     std::unordered_map<uint64_t, float> gScores;  // Best g score for each node
     std::unordered_map<uint64_t, uint64_t> cameFrom;  // Parent tracking
     
+    // Pre-allocate based on expected path length (Manhattan distance * 2)
+    const size_t estimatedNodes = static_cast<size_t>(
+        (std::abs(endX - startX) + std::abs(endY - startY)) * 2 + 100);
+    openSet.reserve(estimatedNodes);
+    closedSet.reserve(estimatedNodes);
+    gScores.reserve(estimatedNodes);
+    cameFrom.reserve(estimatedNodes);
+    
     // Initialize start node
     const float startH = heuristic(startX, startY, endX, endY);
     openQueue.push({startX, startY, 0.0f, startH});

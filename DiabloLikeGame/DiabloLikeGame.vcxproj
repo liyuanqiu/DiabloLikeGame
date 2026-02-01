@@ -129,6 +129,9 @@
   <ItemGroup>
     <ClCompile Include="Camera\Camera.cpp" />
     <ClCompile Include="Core\Game.cpp" />
+    <ClCompile Include="Core\GameConfig.cpp" />
+    <ClCompile Include="Core\IniParser.cpp" />
+    <ClCompile Include="Core\TileConstants.cpp" />
     <ClCompile Include="DiabloLikeGame.cpp" />
     <ClCompile Include="Input\ControllerInput.cpp" />
     <ClCompile Include="Input\InputManager.cpp" />
@@ -137,14 +140,6 @@
     <ClCompile Include="IsometricRenderer.cpp" />
     <ClCompile Include="Map.cpp" />
     <ClCompile Include="Player.cpp" />
-
-
-
-
-
-
-
-
     <ClCompile Include="World\MapGenerator.cpp" />
     <ClCompile Include="World\Pathfinder.cpp" />
   </ItemGroup>
@@ -152,6 +147,7 @@
     <ClInclude Include="Camera\Camera.h" />
     <ClInclude Include="Core\Game.h" />
     <ClInclude Include="Core\GameConfig.h" />
+    <ClInclude Include="Core\IniParser.h" />
     <ClInclude Include="Core\TileConstants.h" />
     <ClInclude Include="Input\ControllerInput.h" />
     <ClInclude Include="Input\IInputDevice.h" />
@@ -161,16 +157,14 @@
     <ClInclude Include="IsometricRenderer.h" />
     <ClInclude Include="Map.h" />
     <ClInclude Include="Player.h" />
-
-
     <ClInclude Include="World\MapGenerator.h" />
     <ClInclude Include="World\Pathfinder.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="config\game.ini" />
+    <None Include="config\mapgen.ini" />
+    <None Include="config\tiles.ini" />
     <None Include="maps\default.map" />
-
-
-
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

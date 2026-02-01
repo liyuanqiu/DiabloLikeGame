@@ -23,8 +23,9 @@ public:
     [[nodiscard]] static Map Generate(int width, int height, unsigned int seed);
 
 private:
-    // Cellular automata smoothing pass
-    static void SmoothMap(std::vector<TileType>& tiles, int width, int height, int threshold);
+// Cellular automata smoothing pass (double-buffered)
+static void SmoothMap(const std::vector<TileType>& tiles, std::vector<TileType>& output,
+                      int width, int height, int threshold);
     
     // Count neighboring walls
     [[nodiscard]] static int CountWallNeighbors(const std::vector<TileType>& tiles, 

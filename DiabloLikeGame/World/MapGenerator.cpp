@@ -34,9 +34,11 @@ Map MapGenerator::Generate(const Config& config)
         }
     }
     
-    // Step 2: Cellular automata smoothing
+    // Step 2: Cellular automata smoothing (use double-buffering)
+    std::vector<TileType> buffer(static_cast<size_t>(width * height));
     for (int i = 0; i < config.smoothIterations; ++i) {
-        SmoothMap(tiles, width, height, config.wallThreshold);
+        SmoothMap(tiles, buffer, width, height, config.wallThreshold);
+        std::swap(tiles, buffer);
     }
     
     // Step 3: Add water pools
@@ -59,25 +61,33 @@ Map MapGenerator::Generate(int width, int height, unsigned int seed)
     return Generate(config);
 }
 
-void MapGenerator::SmoothMap(std::vector<TileType>& tiles, int width, int height, int threshold)
+void MapGenerator::SmoothMap(const std::vector<TileType>& tiles, std::vector<TileType>& output,
+                              int width, int height, int threshold)
 {
-    std::vector<TileType> newTiles = tiles;
-    
     for (int y = 1; y < height - 1; ++y) {
         for (int x = 1; x < width - 1; ++x) {
             const int wallCount = CountWallNeighbors(tiles, width, height, x, y);
             const size_t idx = static_cast<size_t>(y * width + x);
             
             if (wallCount > threshold) {
-                newTiles[idx] = TileType::Wall;
+                output[idx] = TileType::Wall;
             } else if (wallCount < threshold) {
-                newTiles[idx] = TileType::Floor;
+                output[idx] = TileType::Floor;
+            } else {
+                output[idx] = tiles[idx];  // Keep current state
             }
-            // If equal to threshold, keep current state
         }
     }
     
-    tiles = std::move(newTiles);
+    // Copy borders (always walls)
+    for (int x = 0; x < width; ++x) {
+        output[static_cast<size_t>(x)] = TileType::Wall;
+        output[static_cast<size_t>((height - 1) * width + x)] = TileType::Wall;
+    }
+    for (int y = 0; y < height; ++y) {
+        output[static_cast<size_t>(y * width)] = TileType::Wall;
+        output[static_cast<size_t>(y * width + width - 1)] = TileType::Wall;
+    }
 }
 
 int MapGenerator::CountWallNeighbors(const std::vector<TileType>& tiles, 

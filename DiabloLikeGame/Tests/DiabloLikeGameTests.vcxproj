@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -107,6 +107,9 @@
     <ClCompile Include="..\Camera\Camera.cpp" />
     <ClCompile Include="..\Player.cpp" />
     <ClCompile Include="..\Input\InputManager.cpp" />
+    <ClCompile Include="..\Core\IniParser.cpp" />
+    <ClCompile Include="..\Core\GameConfig.cpp" />
+    <ClCompile Include="..\Core\TileConstants.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -7,18 +7,7 @@
 
 using namespace TileConstants;
 
-// Pre-defined tile colors (avoid construction every frame)
-namespace TileColors {
-    static constexpr Color FloorFill    = {60, 60, 65, 255};
-    static constexpr Color FloorOutline = {40, 40, 45, 255};
-    static constexpr Color WallTop      = {100, 100, 110, 255};
-    static constexpr Color WallLeft     = {70, 70, 80, 255};
-    static constexpr Color WallRight    = {85, 85, 95, 255};
-    static constexpr Color WaterFill    = {50, 100, 150, 200};
-    static constexpr Color WaterOutline = {30, 80, 130, 200};
-    static constexpr Color Shadow       = {0, 0, 0, 80};
-    static constexpr Color PathLine     = {144, 238, 144, 200};  // Light green for path
-}
+// Now using TileColors class from TileConstants.h
 
 Vector2 IsometricRenderer::TileToScreen(float tileX, float tileY) const noexcept
 {
@@ -49,7 +38,7 @@ void IsometricRenderer::DrawPlayerAt(float tileX, float tileY, Color color) cons
     
     // Draw shadow first
     DrawEllipse(static_cast<int>(pos.x), static_cast<int>(pos.y + TILE_HEIGHT / 2.0f), 
-                10.0f, 5.0f, TileColors::Shadow);
+                10.0f, 5.0f, TileColors::Shadow());
     
     // Draw player body
     DrawTriangle(top, left, bottom, color);
@@ -146,13 +135,13 @@ void IsometricRenderer::DrawMap(const Map& map) const
                 case TileType::Empty:
                     break;
                 case TileType::Floor:
-                    DrawTile(x, y, TileColors::FloorFill, TileColors::FloorOutline);
+                    DrawTile(x, y, TileColors::FloorFill(), TileColors::FloorOutline());
                     break;
                 case TileType::Wall:
-                    DrawBlock(x, y, TileColors::WallTop, TileColors::WallLeft, TileColors::WallRight);
+                    DrawBlock(x, y, TileColors::WallTop(), TileColors::WallLeft(), TileColors::WallRight());
                     break;
                 case TileType::Water:
-                    DrawTile(x, y, TileColors::WaterFill, TileColors::WaterOutline);
+                    DrawTile(x, y, TileColors::WaterFill(), TileColors::WaterOutline());
                     break;
             }
         }
@@ -163,6 +152,16 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
 {
     int startX, startY, endX, endY;
     GetVisibleTileRange(map, startX, startY, endX, endY);
+    
+    // Cache colors to avoid method calls in tight loops
+    const Color floorFill = TileColors::FloorFill();
+    const Color floorOutline = TileColors::FloorOutline();
+    const Color wallTop = TileColors::WallTop();
+    const Color wallLeft = TileColors::WallLeft();
+    const Color wallRight = TileColors::WallRight();
+    const Color waterFill = TileColors::WaterFill();
+    const Color waterOutline = TileColors::WaterOutline();
+    const Color pathLine = TileColors::PathLine();
     
     // Get player tile position for occlusion check
     const float playerX = player.GetRenderX();
@@ -186,15 +185,15 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
             
             const TileType tile = map.GetTileUnchecked(x, y);
             if (tile == TileType::Floor) {
-                DrawTile(x, y, TileColors::FloorFill, TileColors::FloorOutline);
+                DrawTile(x, y, floorFill, floorOutline);
             } else if (tile == TileType::Water) {
-                DrawTile(x, y, TileColors::WaterFill, TileColors::WaterOutline);
+                DrawTile(x, y, waterFill, waterOutline);
             }
         }
     }
     
     // Pass 1.5: Draw pathfinding visualization on ground
-    DrawPath(player, TileColors::PathLine);
+    DrawPath(player, pathLine);
     
     // Pass 2: Draw walls that do NOT occlude player (N, NE, W, NW, SW)
     for (int y = startY; y <= endY; ++y) {
@@ -203,7 +202,7 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
             if (map.GetTileUnchecked(x, y) != TileType::Wall) continue;
             
             if (!wallOccludesPlayer(x, y)) {
-                DrawBlock(x, y, TileColors::WallTop, TileColors::WallLeft, TileColors::WallRight);
+                DrawBlock(x, y, wallTop, wallLeft, wallRight);
             }
         }
     }
@@ -218,7 +217,7 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
             if (map.GetTileUnchecked(x, y) != TileType::Wall) continue;
             
             if (wallOccludesPlayer(x, y)) {
-                DrawBlock(x, y, TileColors::WallTop, TileColors::WallLeft, TileColors::WallRight);
+                DrawBlock(x, y, wallTop, wallLeft, wallRight);
             }
         }
     }
