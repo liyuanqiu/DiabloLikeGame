@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="DiabloLikeGame/DiabloLikeGame.vcxproj" Id="f119eb9e-a9e9-4f4c-b91b-c1d76df26d28" />
+</Solution>
