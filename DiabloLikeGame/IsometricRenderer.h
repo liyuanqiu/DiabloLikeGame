@@ -2,6 +2,7 @@
 
 #include "raylib.h"
 #include "Map.h"
+#include "Core/Direction.h"
 #include <vector>
 
 // Forward declarations
@@ -37,7 +38,11 @@ public:
     void DrawPath(const Player& player, Color color) const;
 
 private:
-    void DrawEntityAt(float tileX, float tileY, Color color) const;
+    void DrawEntityAt(float tileX, float tileY, Color color, bool isPlayer, 
+                      Direction facing, float punchProgress) const;
+    void DrawArms(float centerX, float bodyTop, float bodyBottom, Color color, 
+                  Color outlineColor, Direction facing, float punchProgress) const;
+    void DrawDirectionArrow(float screenX, float screenY, Direction facing, Color color) const;
     void DrawHealthBar(const Entity& entity, bool isPlayer) const;
     [[nodiscard]] bool IsTileVisible(int x, int y) const noexcept;
     void GetVisibleTileRange(const Map& map, int& startX, int& startY, int& endX, int& endY) const noexcept;

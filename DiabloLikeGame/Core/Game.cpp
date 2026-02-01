@@ -6,6 +6,7 @@
 #include "../Input/ControllerInput.h"
 #include "../World/Pathfinder.h"
 #include "../World/MapGenerator.h"
+#include "../Config/ConfigManager.h"
 #include <cmath>
 #include <algorithm>
 #include <chrono>
@@ -21,6 +22,10 @@ bool Game::Init()
     // Initialize window
     InitWindow(Config::SCREEN_WIDTH, Config::SCREEN_HEIGHT, Config::WINDOW_TITLE);
     SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
+    
+    // Load configuration files
+    ConfigManager::Instance().LoadAll("config");
+    const auto& playerConfig = ConfigManager::Instance().GetPlayerConfig();
     
     // Initialize input system
     InputManager::Instance().AddDevice(std::make_unique<KeyboardInput>());
@@ -42,17 +47,17 @@ bool Game::Init()
     // Initialize renderer
     m_renderer.SetCamera(&m_camera);
     
-    // Random number generator for health
-    std::uniform_int_distribution<int> healthDist(1, 100);
-    
-    // Find spawn position and initialize player with random health
+    // Find spawn position and initialize player from config
     int spawnX, spawnY;
     if (!FindPlayerSpawnPosition(spawnX, spawnY)) {
         return false;
     }
-    const int playerHealth = healthDist(m_rng);
-    m_player.Init(spawnX, spawnY, playerHealth);
-    m_player.SetMoveSpeed(Config::PLAYER_MOVE_SPEED);
+    m_player.Init(spawnX, spawnY, playerConfig.maxHealth);
+    m_player.SetMoveSpeed(playerConfig.moveSpeed);
+    m_player.SetBaseAttack(playerConfig.baseAttack);
+    
+    // Center camera on player at start
+    m_camera.CenterOn(static_cast<float>(spawnX), static_cast<float>(spawnY));
     
     // Spawn enemies on 10% of floor tiles
     SpawnEnemies(Config::ENEMY_SPAWN_RATE);
@@ -81,12 +86,16 @@ bool Game::FindPlayerSpawnPosition(int& outX, int& outY) const
 void Game::SpawnEnemies(float spawnRate)
 {
     std::uniform_real_distribution<float> spawnDist(0.0f, 1.0f);
-    std::uniform_int_distribution<int> healthDist(1, 100);
+    
+    // Get enemy types from config
+    const auto& enemyTypeIds = ConfigManager::Instance().GetEnemyTypeIds();
+    std::uniform_int_distribution<size_t> typeDist(
+        0, enemyTypeIds.empty() ? 0 : enemyTypeIds.size() - 1);
     
     // Get player position to avoid spawning on player
     const int playerX = m_player.GetTileX();
     const int playerY = m_player.GetTileY();
-    constexpr int safeRadius = 5;  // Don't spawn enemies within 5 tiles of player
+    constexpr int safeRadius = 5;
     
     // Reserve estimated space
     const size_t estimatedEnemies = static_cast<size_t>(
@@ -96,18 +105,24 @@ void Game::SpawnEnemies(float spawnRate)
     // Iterate through all floor tiles
     for (int y = 1; y < m_map.GetHeight() - 1; ++y) {
         for (int x = 1; x < m_map.GetWidth() - 1; ++x) {
-            // Skip non-floor tiles
             if (m_map.GetTile(x, y) != TileType::Floor) continue;
             
-            // Skip tiles near player spawn
             const int dx = x - playerX;
             const int dy = y - playerY;
             if (dx * dx + dy * dy < safeRadius * safeRadius) continue;
             
-            // Randomly spawn enemy based on spawn rate with random health
             if (spawnDist(m_rng) < spawnRate) {
-                const int health = healthDist(m_rng);
-                m_enemies.emplace_back(x, y, health, m_rng);
+                // Pick random enemy type from config
+                if (!enemyTypeIds.empty()) {
+                    const auto& typeId = enemyTypeIds[typeDist(m_rng)];
+                    const auto* config = ConfigManager::Instance().GetEnemyType(typeId);
+                    if (config) {
+                        m_enemies.emplace_back(x, y, *config, m_rng);
+                        continue;
+                    }
+                }
+                // Fallback to default
+                m_enemies.emplace_back(x, y, m_rng);
             }
         }
     }
@@ -218,6 +233,7 @@ void Game::HandleKeyboardInput(InputManager& /*input*/)
     //   Screen Down-Left  ¡ú Grid S  ( 0,+1)
     //   Screen Down-Right ¡ú Grid E  (+1, 0)
     
+    
     int dx = 0, dy = 0;
     
     if (inputX == 0 && inputY < 0) {
@@ -257,6 +273,11 @@ void Game::HandleKeyboardInput(InputManager& /*input*/)
             }
         }
     }
+    
+    // Space key to punch
+    if (IsKeyPressed(KEY_SPACE)) {
+        m_player.TryPunch();
+    }
 }
 
 void Game::HandleMouseInput(InputManager& input)
@@ -268,6 +289,23 @@ void Game::HandleMouseInput(InputManager& input)
     if (mouse->IsDragging()) {
         const auto delta = mouse->GetDragDelta();
         m_camera.Move(delta.x, delta.y);
+    }
+    
+    // Right click to turn and punch
+    if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+        // Get mouse position in tile coordinates
+        const Vector2 mousePos = mouse->GetPosition();
+        const Vector2 tilePos = m_camera.ScreenToTile(
+            static_cast<int>(mousePos.x),
+            static_cast<int>(mousePos.y)
+        );
+        
+        const int targetX = static_cast<int>(std::floor(tilePos.x));
+        const int targetY = static_cast<int>(std::floor(tilePos.y));
+        
+        // Turn toward target and punch
+        m_player.FaceToward(targetX, targetY);
+        m_player.TryPunch();
     }
     
     // Click to move player (skip if dropdown is open)
@@ -362,16 +400,85 @@ void Game::HandleControllerInput(InputManager& input, float /*deltaTime*/)
             }
         }
     }
+    
+    // Right stick to turn in place (for aiming)
+    const auto rightStick = controller->GetRightStick();
+    if (rightStick.IsActive()) {
+        constexpr float kAimThreshold = 0.5f;
+        const float absX = std::abs(rightStick.x);
+        const float absY = std::abs(rightStick.y);
+        
+        if (absX > kAimThreshold || absY > kAimThreshold) {
+            int aimDx = 0, aimDy = 0;
+            
+            // Convert stick direction to grid direction (same mapping as left stick)
+            if (absY > absX * 1.5f) {
+                // Primarily vertical
+                if (rightStick.y < 0) {
+                    aimDx = -1; aimDy = -1;  // Up ¡ú NW
+                } else {
+                    aimDx = 1; aimDy = 1;    // Down ¡ú SE
+                }
+            } else if (absX > absY * 1.5f) {
+                // Primarily horizontal
+                if (rightStick.x < 0) {
+                    aimDx = -1; aimDy = 1;   // Left ¡ú SW
+                } else {
+                    aimDx = 1; aimDy = -1;   // Right ¡ú NE
+                }
+            } else {
+                // Diagonal
+                if (rightStick.x < 0 && rightStick.y < 0) {
+                    aimDx = -1; aimDy = 0;   // Up-Left ¡ú W
+                } else if (rightStick.x > 0 && rightStick.y < 0) {
+                    aimDx = 0; aimDy = -1;   // Up-Right ¡ú N
+                } else if (rightStick.x < 0 && rightStick.y > 0) {
+                    aimDx = 0; aimDy = 1;    // Down-Left ¡ú S
+                } else {
+                    aimDx = 1; aimDy = 0;    // Down-Right ¡ú E
+                }
+            }
+            
+            if (aimDx != 0 || aimDy != 0) {
+                m_player.SetFacing(DirectionUtil::FromDelta(aimDx, aimDy));
+            }
+        }
+    }
+    
+    // Right trigger or X button to punch
+    const int gamepadId = controller->GetGamepadId();
+    if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT) ||  // X button
+        GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_RIGHT_TRIGGER) > 0.5f) {
+        m_player.TryPunch();
+    }
 }
 
 void Game::Update(float deltaTime)
 {
     m_player.Update(deltaTime, m_map, m_occupancy);
     
-    // Update all enemies (wandering behavior)
-    for (auto& enemy : m_enemies) {
-        enemy.Update(deltaTime, m_map, m_occupancy, m_rng);
+    // Process player punch hit detection
+    if (m_player.IsPunching()) {
+        Enemy* hitEnemy = m_player.ProcessPunchHit(m_enemies, m_rng);
+        if (hitEnemy && !hitEnemy->IsAlive()) {
+            // Enemy died - remove from occupancy map
+            m_occupancy.SetUnoccupied(hitEnemy->GetTileX(), hitEnemy->GetTileY());
+        }
     }
+    
+    // Update all enemies (wandering and combat behavior)
+    for (auto& enemy : m_enemies) {
+        if (enemy.IsAlive()) {
+            enemy.Update(deltaTime, m_map, m_occupancy, m_rng, &m_player);
+        }
+    }
+    
+    // Remove dead enemies from the list
+    m_enemies.erase(
+        std::remove_if(m_enemies.begin(), m_enemies.end(),
+            [](const Enemy& e) { return !e.IsAlive(); }),
+        m_enemies.end()
+    );
 }
 
 void Game::Render()

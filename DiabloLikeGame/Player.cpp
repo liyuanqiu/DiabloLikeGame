@@ -1,4 +1,5 @@
 #include "Player.h"
+#include "Enemy.h"
 #include "Map.h"
 #include "World/Pathfinder.h"
 #include "World/OccupancyMap.h"
@@ -27,6 +28,7 @@ float Player::GetCurrentSpeedMultiplier() const noexcept
     return m_isDiagonalMove ? 0.70710678f : 1.0f;
 }
 
+
 bool Player::MoveInDirection(int dx, int dy, const Map& map, OccupancyMap& occupancy)
 {
     if (m_isMoving) return false;
@@ -46,12 +48,16 @@ bool Player::MoveInDirection(int dx, int dy, const Map& map, OccupancyMap& occup
         m_path.clear();
         m_hasDestination = false;  // Manual movement clears destination
         
+        // Update facing direction
+        SetFacing(DirectionUtil::FromDelta(dx, dy));
+        
         // Update occupancy
         occupancy.Move(oldX, oldY, newX, newY);
         return true;
     }
     return false;
 }
+
 
 
 void Player::SetPathToDestination(int destX, int destY, const Map& map, OccupancyMap& occupancy)
@@ -88,10 +94,14 @@ void Player::SetPathToDestination(int destX, int destY, const Map& map, Occupanc
         m_isDiagonalMove = (newTileX != m_prevTileX && newTileY != m_prevTileY);
         m_isMoving = true;
         
+        // Update facing direction
+        SetFacing(DirectionUtil::FromDelta(newTileX - oldX, newTileY - oldY));
+        
         // Update occupancy
         occupancy.Move(oldX, oldY, newTileX, newTileY);
     }
 }
+
 
 bool Player::TryReplanPath(const Map& map, OccupancyMap& occupancy)
 {
@@ -135,6 +145,9 @@ bool Player::TryReplanPath(const Map& map, OccupancyMap& occupancy)
     m_isDiagonalMove = (newTileX != m_prevTileX && newTileY != m_prevTileY);
     m_isMoving = true;
     
+    // Update facing direction
+    SetFacing(DirectionUtil::FromDelta(newTileX - oldX, newTileY - oldY));
+    
     // Update occupancy
     occupancy.Move(oldX, oldY, newTileX, newTileY);
     return true;
@@ -147,8 +160,71 @@ void Player::ClearPath() noexcept
     m_hasDestination = false;
 }
 
+bool Player::TryPunch()
+{
+    // Can only punch if not already punching
+    if (!IsPunching()) {
+        StartPunch();
+        m_punchHitProcessed = false;  // Reset hit processing for new punch
+        return true;
+    }
+    return false;
+}
+
+int Player::CalculateDamage(std::mt19937& rng) const
+{
+    // Base damage with ±10% random variation
+    std::uniform_real_distribution<float> variation(0.9f, 1.1f);
+    float damage = m_baseAttack * variation(rng);
+    
+    // 10% critical hit chance for 2x damage
+    std::uniform_real_distribution<float> critRoll(0.0f, 1.0f);
+    if (critRoll(rng) < m_critChance) {
+        damage *= m_critMultiplier;
+    }
+    
+    return static_cast<int>(std::round(damage));
+}
+
+Enemy* Player::ProcessPunchHit(std::vector<Enemy>& enemies, std::mt19937& rng)
+{
+    // Only process hit once per punch, at the peak of the animation (around 50%)
+    if (m_punchHitProcessed || !IsPunching()) {
+        return nullptr;
+    }
+    
+    // Check if we're at the peak of the punch (40-60% progress)
+    const float progress = GetPunchProgress();
+    if (progress < 0.4f || progress > 0.6f) {
+        return nullptr;
+    }
+    
+    m_punchHitProcessed = true;
+    
+    // Calculate target tile based on facing direction
+    const int targetX = GetTileX() + DirectionUtil::GetDeltaX(GetFacing());
+    const int targetY = GetTileY() + DirectionUtil::GetDeltaY(GetFacing());
+    
+    // Find enemy at target position
+    for (auto& enemy : enemies) {
+        if (!enemy.IsAlive()) continue;
+        
+        if (enemy.GetTileX() == targetX && enemy.GetTileY() == targetY) {
+            // Hit! Calculate and apply damage
+            const int damage = CalculateDamage(rng);
+            enemy.TakeDamage(damage);
+            return &enemy;
+        }
+    }
+    
+    return nullptr;  // No hit
+}
+
 void Player::Update(float deltaTime, const Map& map, OccupancyMap& occupancy)
 {
+    // Update punch animation
+    UpdatePunch(deltaTime);
+    
     // If we have a destination but no current path, try to re-plan
     if (m_hasDestination && m_path.empty() && !m_isMoving) {
         TryReplanPath(map, occupancy);
@@ -204,6 +280,9 @@ void Player::Update(float deltaTime, const Map& map, OccupancyMap& occupancy)
                 m_prevTileY = oldY;
                 SetTilePosition(newTileX, newTileY);
                 m_isDiagonalMove = (newTileX != m_prevTileX && newTileY != m_prevTileY);
+                
+                // Update facing direction
+                SetFacing(DirectionUtil::FromDelta(newTileX - oldX, newTileY - oldY));
                 
                 // Update occupancy
                 occupancy.Move(oldX, oldY, newTileX, newTileY);

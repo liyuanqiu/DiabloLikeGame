@@ -25,44 +25,243 @@ Vector2 IsometricRenderer::ScreenToTile(int screenX, int screenY) const noexcept
     return m_camera->ScreenToTile(screenX, screenY);
 }
 
-void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color) const
+void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color, bool isPlayer, 
+                                      Direction facing, float punchProgress) const
 {
     const auto pos = TileToScreen(tileX, tileY);
     
-    constexpr float entityHeight = 24.0f;
-    constexpr float entityWidth = 20.0f;
-    constexpr float halfHeight = entityHeight / 2.0f;
-    constexpr float halfWidth = entityWidth / 2.0f;
+    // Entity dimensions
+    constexpr float bodyHeight = 16.0f;
+    constexpr float bodyWidth = 14.0f;
+    constexpr float headRadius = 6.0f;
     
-    const float centerY = pos.y + TILE_HEIGHT / 2.0f - halfHeight;
-    const Vector2 top    = {pos.x, centerY - halfHeight};
-    const Vector2 bottom = {pos.x, centerY + halfHeight};
-    const Vector2 left   = {pos.x - halfWidth, centerY};
-    const Vector2 right  = {pos.x + halfWidth, centerY};
+    // Calculate center position (standing on tile)
+    const float baseY = pos.y + TILE_HEIGHT / 2.0f;  // Bottom of entity (on ground)
+    const float centerX = pos.x;
     
-    // Draw shadow first
-    DrawEllipse(static_cast<int>(pos.x), static_cast<int>(pos.y + TILE_HEIGHT / 2.0f), 
+    // Draw direction arrow first (under shadow)
+    DrawDirectionArrow(centerX, baseY, facing, color);
+    
+    // Draw shadow
+    DrawEllipse(static_cast<int>(centerX), static_cast<int>(baseY), 
                 10.0f, 5.0f, TileColors::Shadow());
     
-    // Draw entity body
-    DrawTriangle(top, left, bottom, color);
-    DrawTriangle(top, bottom, right, color);
-    
+    // Calculate body outline color
     const Color outlineColor = { 
-        static_cast<unsigned char>(color.r * 0.6f),
-        static_cast<unsigned char>(color.g * 0.6f),
-        static_cast<unsigned char>(color.b * 0.6f),
+        static_cast<unsigned char>(color.r * 0.5f),
+        static_cast<unsigned char>(color.g * 0.5f),
+        static_cast<unsigned char>(color.b * 0.5f),
         255 
     };
-    DrawLineV(top, left, outlineColor);
-    DrawLineV(left, bottom, outlineColor);
-    DrawLineV(bottom, right, outlineColor);
-    DrawLineV(right, top, outlineColor);
+    
+    // Calculate lighter color for head/face and hands
+    const Color lightColor = {
+        static_cast<unsigned char>(std::min(255, color.r + 40)),
+        static_cast<unsigned char>(std::min(255, color.g + 40)),
+        static_cast<unsigned char>(std::min(255, color.b + 40)),
+        255
+    };
+    
+    // Skin color for hands
+    const Color skinColor = {255, 220, 185, 255};
+    const Color skinOutline = {180, 150, 120, 255};
+    
+    // Body - trapezoid shape (wider at bottom like a robe/cloak)
+    const float bodyTop = baseY - bodyHeight - headRadius * 2.0f;
+    const float bodyBottom = baseY - 2.0f;
+    const float topWidth = bodyWidth * 0.6f;
+    const float bottomWidth = bodyWidth;
+    
+    const Vector2 bodyTL = {centerX - topWidth / 2.0f, bodyTop};
+    const Vector2 bodyTR = {centerX + topWidth / 2.0f, bodyTop};
+    const Vector2 bodyBL = {centerX - bottomWidth / 2.0f, bodyBottom};
+    const Vector2 bodyBR = {centerX + bottomWidth / 2.0f, bodyBottom};
+    
+    // Draw body (two triangles for trapezoid)
+    DrawTriangle(bodyTL, bodyBL, bodyBR, color);
+    DrawTriangle(bodyTL, bodyBR, bodyTR, color);
+    
+    // Body outline
+    DrawLineV(bodyTL, bodyTR, outlineColor);
+    DrawLineV(bodyTR, bodyBR, outlineColor);
+    DrawLineV(bodyBR, bodyBL, outlineColor);
+    DrawLineV(bodyBL, bodyTL, outlineColor);
+    
+    // Draw arms
+    DrawArms(centerX, bodyTop, bodyBottom, skinColor, skinOutline, facing, punchProgress);
+    
+    // Head - circle
+    const float headCenterY = bodyTop - headRadius - 1.0f;
+    DrawCircle(static_cast<int>(centerX), static_cast<int>(headCenterY), 
+               headRadius, lightColor);
+    DrawCircleLines(static_cast<int>(centerX), static_cast<int>(headCenterY), 
+                    headRadius, outlineColor);
+    
+    if (isPlayer) {
+        // Player: friendly eyes (small dots) and smile
+        constexpr float eyeOffset = 2.5f;
+        constexpr float eyeRadius = 1.2f;
+        const float eyeY = headCenterY - 1.0f;
+        
+        // Eyes
+        DrawCircle(static_cast<int>(centerX - eyeOffset), static_cast<int>(eyeY), 
+                   eyeRadius, outlineColor);
+        DrawCircle(static_cast<int>(centerX + eyeOffset), static_cast<int>(eyeY), 
+                   eyeRadius, outlineColor);
+        
+        // Small smile (arc)
+        const float smileY = headCenterY + 2.0f;
+        DrawLine(static_cast<int>(centerX - 2), static_cast<int>(smileY),
+                 static_cast<int>(centerX), static_cast<int>(smileY + 1), outlineColor);
+        DrawLine(static_cast<int>(centerX), static_cast<int>(smileY + 1),
+                 static_cast<int>(centerX + 2), static_cast<int>(smileY), outlineColor);
+    } else {
+        // Enemy: angry eyes (slanted) and frown
+        constexpr float eyeOffset = 2.5f;
+        const float eyeY = headCenterY - 1.0f;
+        
+        // Angry eyes (slanted lines)
+        DrawLine(static_cast<int>(centerX - eyeOffset - 1), static_cast<int>(eyeY - 1),
+                 static_cast<int>(centerX - eyeOffset + 1), static_cast<int>(eyeY + 1), outlineColor);
+        DrawLine(static_cast<int>(centerX + eyeOffset - 1), static_cast<int>(eyeY + 1),
+                 static_cast<int>(centerX + eyeOffset + 1), static_cast<int>(eyeY - 1), outlineColor);
+        
+        // Frown
+        const float frownY = headCenterY + 2.5f;
+        DrawLine(static_cast<int>(centerX - 2), static_cast<int>(frownY + 1),
+                 static_cast<int>(centerX), static_cast<int>(frownY), outlineColor);
+        DrawLine(static_cast<int>(centerX), static_cast<int>(frownY),
+                 static_cast<int>(centerX + 2), static_cast<int>(frownY + 1), outlineColor);
+    }
+}
+
+void IsometricRenderer::DrawArms(float centerX, float bodyTop, float bodyBottom, Color color,
+                                  Color outlineColor, Direction facing, float punchProgress) const
+{
+    // Arm dimensions
+    constexpr float armLength = 8.0f;
+    constexpr float handRadius = 3.0f;
+    constexpr float punchExtend = 12.0f;  // Extra extension when punching
+    
+    // Arm attachment point (middle of body sides)
+    const float armY = (bodyTop + bodyBottom) / 2.0f - 2.0f;
+    const float armOffsetX = 8.0f;  // Distance from center to arm
+    
+    // Get direction vector for punching
+    const int dx = DirectionUtil::GetDeltaX(facing);
+    const int dy = DirectionUtil::GetDeltaY(facing);
+    
+    // Convert to isometric screen direction
+    const float isoX = static_cast<float>(dx - dy) * 0.5f;
+    const float isoY = static_cast<float>(dx + dy) * 0.25f;
+    
+    // Normalize
+    const float len = std::sqrt(isoX * isoX + isoY * isoY);
+    const float dirX = len > 0.001f ? isoX / len : 0.0f;
+    const float dirY = len > 0.001f ? isoY / len : 0.0f;
+    
+    // Punch animation: 0->0.5 extend, 0.5->1.0 retract
+    float punchAmount = 0.0f;
+    if (punchProgress > 0.0f) {
+        if (punchProgress < 0.5f) {
+            punchAmount = punchProgress * 2.0f;  // 0 to 1
+        } else {
+            punchAmount = (1.0f - punchProgress) * 2.0f;  // 1 to 0
+        }
+    }
+    
+    // Draw left arm (always at rest position)
+    const float leftArmX = centerX - armOffsetX;
+    const float leftHandX = leftArmX - armLength * 0.5f;
+    const float leftHandY = armY + 2.0f;
+    
+    // Left arm line
+    DrawLineEx({leftArmX, armY}, {leftHandX, leftHandY}, 2.0f, outlineColor);
+    // Left hand (fist)
+    DrawCircle(static_cast<int>(leftHandX), static_cast<int>(leftHandY), handRadius, color);
+    DrawCircleLines(static_cast<int>(leftHandX), static_cast<int>(leftHandY), handRadius, outlineColor);
+    
+    // Draw right arm (punching arm)
+    const float rightArmX = centerX + armOffsetX;
+    float rightHandX = rightArmX + armLength * 0.5f;
+    float rightHandY = armY + 2.0f;
+    
+    // Apply punch extension in facing direction
+    if (punchAmount > 0.0f) {
+        rightHandX += dirX * punchExtend * punchAmount;
+        rightHandY += dirY * punchExtend * punchAmount;
+    }
+    
+    // Right arm line
+    DrawLineEx({rightArmX, armY}, {rightHandX, rightHandY}, 2.0f, outlineColor);
+    // Right hand (fist)
+    DrawCircle(static_cast<int>(rightHandX), static_cast<int>(rightHandY), handRadius, color);
+    DrawCircleLines(static_cast<int>(rightHandX), static_cast<int>(rightHandY), handRadius, outlineColor);
+}
+
+void IsometricRenderer::DrawDirectionArrow(float screenX, float screenY, Direction facing, Color color) const
+{
+    // Convert grid direction to isometric screen direction
+    // In isometric view:
+    // Grid +X (East) -> Screen right-up
+    // Grid +Y (South) -> Screen right-down
+    // Grid -X (West) -> Screen left-down
+    // Grid -Y (North) -> Screen left-up
+    
+    const int dx = DirectionUtil::GetDeltaX(facing);
+    const int dy = DirectionUtil::GetDeltaY(facing);
+    
+    // Convert to isometric screen offset
+    // Isometric: screenX = (tileX - tileY) * halfWidth, screenY = (tileX + tileY) * halfHeight
+    const float isoX = static_cast<float>(dx - dy) * (TILE_WIDTH / 4.0f);
+    const float isoY = static_cast<float>(dx + dy) * (TILE_HEIGHT / 4.0f);
+    
+    // Arrow properties
+    constexpr float arrowLength = 18.0f;
+    constexpr float arrowHeadSize = 6.0f;
+    
+    // Normalize and scale
+    const float len = std::sqrt(isoX * isoX + isoY * isoY);
+    if (len < 0.001f) return;
+    
+    const float dirX = isoX / len;
+    const float dirY = isoY / len;
+    
+    // Arrow start (at entity feet) and end
+    const Vector2 start = {screenX, screenY};
+    const Vector2 end = {screenX + dirX * arrowLength, screenY + dirY * arrowLength};
+    
+    // Arrow head points
+    const float perpX = -dirY;
+    const float perpY = dirX;
+    const Vector2 head1 = {
+        end.x - dirX * arrowHeadSize + perpX * arrowHeadSize * 0.5f,
+        end.y - dirY * arrowHeadSize + perpY * arrowHeadSize * 0.5f
+    };
+    const Vector2 head2 = {
+        end.x - dirX * arrowHeadSize - perpX * arrowHeadSize * 0.5f,
+        end.y - dirY * arrowHeadSize - perpY * arrowHeadSize * 0.5f
+    };
+    
+    // Arrow color (bright yellow for visibility)
+    const Color arrowColor = {255, 220, 50, 255};
+    const Color arrowOutline = {180, 150, 30, 255};
+    
+    // Draw arrow shaft (thick line)
+    DrawLineEx(start, end, 3.0f, arrowColor);
+    DrawLineEx(start, end, 1.0f, arrowOutline);
+    
+    // Draw arrow head
+    DrawTriangle(end, head1, head2, arrowColor);
+    DrawLineV(end, head1, arrowOutline);
+    DrawLineV(end, head2, arrowOutline);
+    DrawLineV(head1, head2, arrowOutline);
 }
 
 void IsometricRenderer::DrawPlayer(const Player& player, Color color) const
 {
-    DrawEntityAt(player.GetRenderX(), player.GetRenderY(), color);
+    DrawEntityAt(player.GetRenderX(), player.GetRenderY(), color, true, 
+                 player.GetFacing(), player.GetPunchProgress());
 }
 
 void IsometricRenderer::DrawHealthBar(const Entity& entity, bool isPlayer) const
@@ -81,7 +280,7 @@ void IsometricRenderer::DrawHealthBar(const Entity& entity, bool isPlayer) const
     // Health bar dimensions
     constexpr float barWidth = 24.0f;
     constexpr float barHeight = 4.0f;
-    constexpr float barOffsetY = -20.0f;  // Above the entity
+    constexpr float barOffsetY = -32.0f;  // Above the entity head (adjusted for new character height)
     constexpr float baselineHealth = 100.0f;  // Reference health for bar display
     
     const float barX = pos.x - barWidth / 2.0f;
@@ -263,22 +462,26 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
         float renderY;
         Color color;
         bool isPlayer;
+        Direction facing;
+        float punchProgress;
         const Entity* entity;  // For health bar drawing
     };
     std::vector<EntityInfo> entities;
     entities.reserve(enemies.size() + 1);
     
     // Add player
-    entities.push_back({playerDepth, playerX, playerY, playerColor, true, &player});
+    entities.push_back({playerDepth, playerX, playerY, playerColor, true, 
+                        player.GetFacing(), player.GetPunchProgress(), &player});
     
-    // Add visible enemies
+    // Add visible enemies (use their individual color from config)
     for (const auto& enemy : enemies) {
         if (!enemy.IsAlive()) continue;
         if (!IsTileVisible(enemy.GetTileX(), enemy.GetTileY())) continue;
         
         const float ex = enemy.GetRenderX();
         const float ey = enemy.GetRenderY();
-        entities.push_back({ex + ey, ex, ey, enemyColor, false, &enemy});
+        entities.push_back({ex + ey, ex, ey, enemy.GetColor(), false, 
+                           enemy.GetFacing(), enemy.GetPunchProgress(), &enemy});
     }
     
     // Sort entities by depth (ascending - further from camera first)
@@ -306,7 +509,7 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
         while (entityIdx < entities.size() && entities[entityIdx].depth < static_cast<float>(depth + 1)) {
             const auto& e = entities[entityIdx];
             if (e.depth >= static_cast<float>(depth)) {
-                DrawEntityAt(e.renderX, e.renderY, e.color);
+                DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, e.punchProgress);
                 // Draw health bar above entity
                 if (e.entity) {
                     DrawHealthBar(*e.entity, e.isPlayer);
@@ -319,7 +522,7 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
     // Draw any remaining entities (in case of rounding issues)
     for (; entityIdx < entities.size(); ++entityIdx) {
         const auto& e = entities[entityIdx];
-        DrawEntityAt(e.renderX, e.renderY, e.color);
+        DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, e.punchProgress);
         if (e.entity) {
             DrawHealthBar(*e.entity, e.isPlayer);
         }

@@ -49,3 +49,40 @@ void Entity::Heal(int amount) noexcept
     
     m_health = std::min(m_maxHealth, m_health + amount);
 }
+
+void Entity::FaceToward(int targetX, int targetY) noexcept
+{
+    const int dx = targetX - m_tileX;
+    const int dy = targetY - m_tileY;
+    
+    // Clamp to -1, 0, 1 for direction
+    const int ndx = (dx > 0) ? 1 : (dx < 0) ? -1 : 0;
+    const int ndy = (dy > 0) ? 1 : (dy < 0) ? -1 : 0;
+    
+    // Only update if there's a direction
+    if (ndx != 0 || ndy != 0) {
+        m_facing = DirectionUtil::FromDelta(ndx, ndy);
+    }
+}
+
+void Entity::StartPunch() noexcept
+{
+    if (!m_isPunching && m_isAlive) {
+        m_isPunching = true;
+        m_punchProgress = 0.0f;
+    }
+}
+
+void Entity::UpdatePunch(float deltaTime) noexcept
+{
+    if (!m_isPunching) return;
+    
+    // Progress the punch animation
+    m_punchProgress += deltaTime / PUNCH_DURATION;
+    
+    if (m_punchProgress >= 1.0f) {
+        // Punch complete
+        m_isPunching = false;
+        m_punchProgress = 0.0f;
+    }
+}

@@ -2,10 +2,12 @@
 
 #include "Entity.h"
 #include <vector>
+#include <random>
 
 // Forward declarations
 class Map;
 class OccupancyMap;
+class Enemy;
 
 // Player entity with movement and pathfinding
 class Player : public Entity {
@@ -27,12 +29,23 @@ public:
     
     // Clear current path (stop moving)
     void ClearPath() noexcept;
+    
+    // Attack action - returns true if punch was initiated
+    bool TryPunch();
+    
+    // Process punch hit detection (called when punch is at peak)
+    // Returns pointer to hit enemy, or nullptr if no hit
+    Enemy* ProcessPunchHit(std::vector<Enemy>& enemies, std::mt19937& rng);
 
     // Player-specific getters
     [[nodiscard]] bool IsMoving() const noexcept { return m_isMoving; }
     [[nodiscard]] const std::vector<Vector2>& GetPath() const noexcept { return m_path; }
     [[nodiscard]] size_t GetPathIndex() const noexcept { return m_pathIndex; }
     [[nodiscard]] bool HasDestination() const noexcept { return m_hasDestination; }
+    
+    // Combat stats
+    [[nodiscard]] float GetBaseAttack() const noexcept { return m_baseAttack; }
+    void SetBaseAttack(float attack) noexcept { m_baseAttack = attack; }
 
     // Configuration
     void SetMoveSpeed(float speed) noexcept { m_moveSpeed = speed; }
@@ -44,6 +57,9 @@ private:
     
     // Try to re-plan path to destination
     bool TryReplanPath(const Map& map, OccupancyMap& occupancy);
+    
+    // Calculate actual damage with random variation
+    [[nodiscard]] int CalculateDamage(std::mt19937& rng) const;
 
     // Previous tile position (to determine movement direction)
     int m_prevTileX{};
@@ -62,4 +78,10 @@ private:
     int m_destX{};
     int m_destY{};
     bool m_hasDestination{false};
+    
+    // Combat stats
+    float m_baseAttack{20.0f};        // Player base attack
+    float m_critChance{0.10f};        // 10% crit chance
+    float m_critMultiplier{2.0f};     // 2x damage on crit
+    bool m_punchHitProcessed{false};  // Track if current punch has been processed
 };

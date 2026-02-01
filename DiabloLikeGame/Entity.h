@@ -1,6 +1,7 @@
 #pragma once
 
 #include "raylib.h"
+#include "Core/Direction.h"
 
 // Base class for all game entities (player, enemies, NPCs, etc.)
 class Entity {
@@ -23,6 +24,17 @@ public:
     
     // Depth for isometric sorting (x + y)
     [[nodiscard]] float GetDepth() const noexcept { return m_renderX + m_renderY; }
+    
+    // Direction/Facing
+    [[nodiscard]] Direction GetFacing() const noexcept { return m_facing; }
+    void SetFacing(Direction dir) noexcept { m_facing = dir; }
+    void FaceToward(int targetX, int targetY) noexcept;
+    
+    // Attack/Punch state
+    [[nodiscard]] bool IsPunching() const noexcept { return m_isPunching; }
+    [[nodiscard]] float GetPunchProgress() const noexcept { return m_punchProgress; }
+    void StartPunch() noexcept;
+    void UpdatePunch(float deltaTime) noexcept;
     
     // Alive state
     [[nodiscard]] bool IsAlive() const noexcept { return m_isAlive; }
@@ -52,6 +64,14 @@ protected:
     // Render position (for smooth animation)
     float m_renderX{};
     float m_renderY{};
+    
+    // Direction facing
+    Direction m_facing{Direction::South};  // Default facing camera
+    
+    // Punch animation state
+    bool m_isPunching{false};
+    float m_punchProgress{0.0f};  // 0.0 = start, 1.0 = fully extended, back to 0.0 = retracted
+    static constexpr float PUNCH_DURATION = 0.25f;  // Total punch animation time in seconds
     
     // Health
     int m_health{100};

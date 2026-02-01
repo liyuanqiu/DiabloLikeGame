@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera\Camera.cpp" />
+    <ClCompile Include="Config\ConfigManager.cpp" />
     <ClCompile Include="Core\Game.cpp" />
     <ClCompile Include="Core\GameConfig.cpp" />
     <ClCompile Include="Core\IniParser.cpp" />
@@ -147,6 +148,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera\Camera.h" />
+    <ClInclude Include="Config\ConfigManager.h" />
+    <ClInclude Include="Config\EntityConfig.h" />
+    <ClInclude Include="Core\Direction.h" />
     <ClInclude Include="Core\Game.h" />
     <ClInclude Include="Core\GameConfig.h" />
     <ClInclude Include="Core\IniParser.h" />
@@ -166,8 +170,12 @@
     <ClInclude Include="World\Pathfinder.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="config\enemies\goblin.ini" />
+    <None Include="config\enemies\skeleton.ini" />
+    <None Include="config\enemies\slime.ini" />
     <None Include="config\game.ini" />
     <None Include="config\mapgen.ini" />
+    <None Include="config\player.ini" />
     <None Include="config\tiles.ini" />
     <None Include="maps\default.map" />
   </ItemGroup>
