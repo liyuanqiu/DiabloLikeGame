@@ -137,6 +137,14 @@
     <ClCompile Include="IsometricRenderer.cpp" />
     <ClCompile Include="Map.cpp" />
     <ClCompile Include="Player.cpp" />
+
+
+
+
+
+
+
+
     <ClCompile Include="World\MapGenerator.cpp" />
     <ClCompile Include="World\Pathfinder.cpp" />
   </ItemGroup>
@@ -153,11 +161,16 @@
     <ClInclude Include="IsometricRenderer.h" />
     <ClInclude Include="Map.h" />
     <ClInclude Include="Player.h" />
+
+
     <ClInclude Include="World\MapGenerator.h" />
     <ClInclude Include="World\Pathfinder.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="maps\default.map" />
+
+
+
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
