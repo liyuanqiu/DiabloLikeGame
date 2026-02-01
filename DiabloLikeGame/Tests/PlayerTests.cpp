@@ -357,4 +357,108 @@ namespace PlayerTests
             Assert::AreEqual(1000u, static_cast<unsigned>(player.GetPath().size()));
         }
     };
+
+    TEST_CLASS(PathFollowingTests)
+    {
+    public:
+        TEST_METHOD(UpdateAdvancesAlongPath)
+        {
+            Player player;
+            player.Init(0, 0);
+            player.SetMoveSpeed(100.0f); // Very fast for testing
+            
+            std::vector<Vector2> path = {{1.0f, 0.0f}, {2.0f, 0.0f}, {3.0f, 0.0f}};
+            player.SetPath(path);
+            
+            // After enough updates, should reach end of path
+            for (int i = 0; i < 100; ++i) {
+                player.Update(0.1f);
+            }
+            
+            // Path should be cleared after completion
+            Assert::IsTrue(player.GetPath().empty());
+            Assert::IsFalse(player.IsMoving());
+        }
+
+        TEST_METHOD(UpdateWithDiagonalPath)
+        {
+            Player player;
+            player.Init(0, 0);
+            player.SetMoveSpeed(100.0f);
+            
+            // Diagonal path
+            std::vector<Vector2> path = {{1.0f, 1.0f}, {2.0f, 2.0f}};
+            player.SetPath(path);
+            
+            // Update until complete
+            for (int i = 0; i < 100; ++i) {
+                player.Update(0.1f);
+            }
+            
+            Assert::IsFalse(player.IsMoving());
+        }
+
+        TEST_METHOD(UpdateSingleStepPath)
+        {
+            Player player;
+            player.Init(0, 0);
+            player.SetMoveSpeed(100.0f);
+            
+            std::vector<Vector2> path = {{1.0f, 0.0f}};
+            player.SetPath(path);
+            
+            for (int i = 0; i < 50; ++i) {
+                player.Update(0.1f);
+            }
+            
+            Assert::IsFalse(player.IsMoving());
+            Assert::AreEqual(1, player.GetTileX());
+        }
+
+        TEST_METHOD(PathIndexIncrementsCorrectly)
+        {
+            Player player;
+            player.Init(0, 0);
+            player.SetMoveSpeed(1000.0f); // Very fast
+            
+            std::vector<Vector2> path = {{1.0f, 0.0f}, {2.0f, 0.0f}};
+            player.SetPath(path);
+            Assert::AreEqual(0u, static_cast<unsigned>(player.GetPathIndex()));
+            
+            // First waypoint
+            for (int i = 0; i < 10; ++i) player.Update(0.1f);
+            
+            // Should have advanced
+            Assert::IsTrue(player.GetPathIndex() >= 1 || player.GetPath().empty());
+        }
+    };
+
+    TEST_CLASS(HealthIntegrationTests)
+    {
+    public:
+        TEST_METHOD(PlayerInitWithHealth)
+        {
+            Player player;
+            player.Init(5, 5, 75);
+            Assert::AreEqual(75, player.GetHealth());
+            Assert::AreEqual(75, player.GetMaxHealth());
+        }
+
+        TEST_METHOD(PlayerTakeDamage)
+        {
+            Player player;
+            player.Init(0, 0, 100);
+            player.TakeDamage(30);
+            Assert::AreEqual(70, player.GetHealth());
+            Assert::IsTrue(player.HasBeenDamaged());
+        }
+
+        TEST_METHOD(PlayerFatalDamage)
+        {
+            Player player;
+            player.Init(0, 0, 50);
+            player.TakeDamage(100);
+            Assert::IsFalse(player.IsAlive());
+        }
+    };
 }

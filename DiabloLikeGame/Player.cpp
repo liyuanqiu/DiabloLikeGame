@@ -3,14 +3,13 @@
 #include "World/Pathfinder.h"
 #include <cmath>
 
-void Player::Init(int tileX, int tileY)
+void Player::Init(int tileX, int tileY, int health)
 {
-    m_tileX = tileX;
-    m_tileY = tileY;
+    SetTilePosition(tileX, tileY);
+    SetRenderPosition(static_cast<float>(tileX), static_cast<float>(tileY));
+    SetHealth(health, health);
     m_prevTileX = tileX;
     m_prevTileY = tileY;
-    m_renderX = static_cast<float>(tileX);
-    m_renderY = static_cast<float>(tileY);
     m_isMoving = false;
     m_isDiagonalMove = false;
     m_path.clear();
@@ -30,14 +29,13 @@ bool Player::MoveInDirection(int dx, int dy, const Map& map)
 {
     if (m_isMoving) return false;
     
-    const int newX = m_tileX + dx;
-    const int newY = m_tileY + dy;
+    const int newX = GetTileX() + dx;
+    const int newY = GetTileY() + dy;
     
     if (Pathfinder::IsTileWalkable(map, newX, newY)) {
-        m_prevTileX = m_tileX;
-        m_prevTileY = m_tileY;
-        m_tileX = newX;
-        m_tileY = newY;
+        m_prevTileX = GetTileX();
+        m_prevTileY = GetTileY();
+        SetTilePosition(newX, newY);
         m_isMoving = true;
         m_isDiagonalMove = (dx != 0 && dy != 0);
         m_path.clear();
@@ -57,10 +55,9 @@ void Player::SetPath(std::vector<Vector2> path)
         const int newTileX = static_cast<int>(firstTarget.x);
         const int newTileY = static_cast<int>(firstTarget.y);
         
-        m_prevTileX = m_tileX;
-        m_prevTileY = m_tileY;
-        m_tileX = newTileX;
-        m_tileY = newTileY;
+        m_prevTileX = GetTileX();
+        m_prevTileY = GetTileY();
+        SetTilePosition(newTileX, newTileY);
         m_isDiagonalMove = (newTileX != m_prevTileX && newTileY != m_prevTileY);
         m_isMoving = true;
     }
@@ -74,10 +71,10 @@ void Player::ClearPath() noexcept
 
 void Player::Update(float deltaTime)
 {
-    const float targetX = static_cast<float>(m_tileX);
-    const float targetY = static_cast<float>(m_tileY);
-    const float dx = targetX - m_renderX;
-    const float dy = targetY - m_renderY;
+    const float targetX = static_cast<float>(GetTileX());
+    const float targetY = static_cast<float>(GetTileY());
+    const float dx = targetX - GetRenderX();
+    const float dy = targetY - GetRenderY();
     const float distSq = dx * dx + dy * dy;
     
     constexpr float kArrivalThresholdSq = 0.01f * 0.01f;
@@ -85,8 +82,7 @@ void Player::Update(float deltaTime)
     
     // Check if we've arrived at current target
     if (distSq <= kArrivalThresholdSq) {
-        m_renderX = targetX;
-        m_renderY = targetY;
+        SetRenderPosition(targetX, targetY);
         
         // If following a path, advance to next waypoint
         if (!m_path.empty() && m_pathIndex < m_path.size()) {
@@ -98,10 +94,9 @@ void Player::Update(float deltaTime)
                 const int newTileX = static_cast<int>(nextTarget.x);
                 const int newTileY = static_cast<int>(nextTarget.y);
                 
-                m_prevTileX = m_tileX;
-                m_prevTileY = m_tileY;
-                m_tileX = newTileX;
-                m_tileY = newTileY;
+                m_prevTileX = GetTileX();
+                m_prevTileY = GetTileY();
+                SetTilePosition(newTileX, newTileY);
                 m_isDiagonalMove = (newTileX != m_prevTileX && newTileY != m_prevTileY);
             } else {
                 // Path complete
@@ -122,11 +117,12 @@ void Player::Update(float deltaTime)
     const float moveAmount = effectiveSpeed * deltaTime;
     
     if (moveAmount >= dist) {
-        m_renderX = targetX;
-        m_renderY = targetY;
+        SetRenderPosition(targetX, targetY);
     } else {
         const float invDist = 1.0f / dist;
-        m_renderX += dx * invDist * moveAmount;
-        m_renderY += dy * invDist * moveAmount;
+        SetRenderPosition(
+            GetRenderX() + dx * invDist * moveAmount,
+            GetRenderY() + dy * invDist * moveAmount
+        );
     }
 }

@@ -23,6 +23,9 @@ bool GameConfig::Load(const char* filename) {
     s_playerHeight = ini.GetFloat("Player", "Height", s_playerHeight);
     s_playerWidth = ini.GetFloat("Player", "Width", s_playerWidth);
     
+    // Enemy
+    s_enemySpawnRate = ini.GetFloat("Enemy", "SpawnRate", s_enemySpawnRate);
+    
     // Paths
     s_defaultMapPath = ini.GetString("Paths", "DefaultMap", s_defaultMapPath);
     

@@ -8,6 +8,13 @@
 #include "../World/MapGenerator.h"
 #include <cmath>
 #include <algorithm>
+#include <chrono>
+
+Game::Game()
+    : m_rng(static_cast<unsigned int>(
+        std::chrono::high_resolution_clock::now().time_since_epoch().count()))
+{
+}
 
 bool Game::Init()
 {
@@ -35,13 +42,20 @@ bool Game::Init()
     // Initialize renderer
     m_renderer.SetCamera(&m_camera);
     
-    // Find spawn position and initialize player
+    // Random number generator for health
+    std::uniform_int_distribution<int> healthDist(1, 100);
+    
+    // Find spawn position and initialize player with random health
     int spawnX, spawnY;
     if (!FindPlayerSpawnPosition(spawnX, spawnY)) {
         return false;
     }
-    m_player.Init(spawnX, spawnY);
+    const int playerHealth = healthDist(m_rng);
+    m_player.Init(spawnX, spawnY, playerHealth);
     m_player.SetMoveSpeed(Config::PLAYER_MOVE_SPEED);
+    
+    // Spawn enemies on 10% of floor tiles
+    SpawnEnemies(Config::ENEMY_SPAWN_RATE);
     
     m_isRunning = true;
     return true;
@@ -59,6 +73,41 @@ bool Game::FindPlayerSpawnPosition(int& outX, int& outY) const
         }
     }
     return false;
+}
+
+void Game::SpawnEnemies(float spawnRate)
+{
+    std::uniform_real_distribution<float> spawnDist(0.0f, 1.0f);
+    std::uniform_int_distribution<int> healthDist(1, 100);
+    
+    // Get player position to avoid spawning on player
+    const int playerX = m_player.GetTileX();
+    const int playerY = m_player.GetTileY();
+    constexpr int safeRadius = 5;  // Don't spawn enemies within 5 tiles of player
+    
+    // Reserve estimated space
+    const size_t estimatedEnemies = static_cast<size_t>(
+        m_map.GetWidth() * m_map.GetHeight() * spawnRate * 0.5f);
+    m_enemies.reserve(estimatedEnemies);
+    
+    // Iterate through all floor tiles
+    for (int y = 1; y < m_map.GetHeight() - 1; ++y) {
+        for (int x = 1; x < m_map.GetWidth() - 1; ++x) {
+            // Skip non-floor tiles
+            if (m_map.GetTile(x, y) != TileType::Floor) continue;
+            
+            // Skip tiles near player spawn
+            const int dx = x - playerX;
+            const int dy = y - playerY;
+            if (dx * dx + dy * dy < safeRadius * safeRadius) continue;
+            
+            // Randomly spawn enemy based on spawn rate with random health
+            if (spawnDist(m_rng) < spawnRate) {
+                const int health = healthDist(m_rng);
+                m_enemies.emplace_back(x, y, health);
+            }
+        }
+    }
 }
 
 void Game::Run()
@@ -310,9 +359,10 @@ void Game::Render()
     BeginDrawing();
     ClearBackground(Color{30, 30, 40, 255});
     
-    // Draw scene with proper depth sorting (player can be occluded by walls)
-    static constexpr Color playerColor = {255, 100, 100, 255};
-    m_renderer.DrawScene(m_map, m_player, playerColor);
+    // Draw scene with proper depth sorting (player and enemies can be occluded by walls)
+    static constexpr Color playerColor = {100, 200, 255, 255};  // Light blue for player
+    static constexpr Color enemyColor = {230, 41, 55, 255};      // Red for enemies
+    m_renderer.DrawScene(m_map, m_player, playerColor, m_enemies, enemyColor);
     
     RenderUI();
     
@@ -328,29 +378,37 @@ void Game::RenderUI()
     DrawText(TextFormat("Map: %s (%dx%d)", m_map.GetName().c_str(),
         m_map.GetWidth(), m_map.GetHeight()), 10, 10, 20, WHITE);
     
-    // Player info
-    DrawText(TextFormat("Player: (%d, %d)", m_player.GetTileX(), m_player.GetTileY()),
+    // Player info  
+    DrawText(TextFormat("Player: (%d, %d) HP: %d/%d", 
+        m_player.GetTileX(), m_player.GetTileY(),
+        m_player.GetHealth(), m_player.GetMaxHealth()),
         10, 35, 16, SKYBLUE);
     DrawText(m_player.IsMoving() ? "Moving" : "Idle", 10, 55, 16,
         m_player.IsMoving() ? GREEN : GRAY);
     
+    // Enemy count
+    DrawText(TextFormat("Enemies: %d", static_cast<int>(m_enemies.size())), 10, 75, 16, RED);
+    
     // Show input-specific info
+    int infoY = 95;
     if (m_inputMode == InputMode::Controller) {
         auto* controller = InputManager::Instance().GetDevice<ControllerInput>();
         if (controller && controller->IsConnected()) {
             const auto leftStick = controller->GetLeftStick();
             DrawText(TextFormat("Stick: X=%+.2f Y=%+.2f", leftStick.x, leftStick.y), 
-                10, 80, 12, leftStick.IsActive() ? LIME : GRAY);
+                10, infoY, 12, leftStick.IsActive() ? LIME : GRAY);
         } else {
-            DrawText("Controller: Not connected!", 10, 80, 12, RED);
+            DrawText("Controller: Not connected!", 10, infoY, 12, RED);
         }
     } else if (m_inputMode == InputMode::Keyboard) {
-        DrawText("WASD: Move player", 10, 80, 12, LIGHTGRAY);
+        DrawText("WASD: Move player", 10, infoY, 12, LIGHTGRAY);
     } else if (m_inputMode == InputMode::Mouse) {
-        DrawText("Click: Move to tile", 10, 80, 12, LIGHTGRAY);
+        DrawText("Click: Move to tile", 10, infoY, 12, LIGHTGRAY);
     }
+    infoY += 16;
     
-    DrawText("Arrow Keys / Right Stick: Pan camera", 10, 98, 12, GRAY);
+    DrawText("Arrow Keys / Right Stick: Pan camera", 10, infoY, 12, GRAY);
+    infoY += 18;
     
     // Mouse tile info
     const Vector2 mousePos = GetMousePosition();
@@ -364,7 +422,7 @@ void Game::RenderUI()
     
     DrawText(TextFormat("Tile: (%d, %d) %s", hoverX, hoverY,
         walkable ? "[OK]" : "[Blocked]"),
-        10, 120, 14, walkable ? GREEN : RED);
+        10, infoY, 14, walkable ? GREEN : RED);
     
     DrawFPS(10, Config::SCREEN_HEIGHT - 25);
 }

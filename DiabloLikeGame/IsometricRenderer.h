@@ -2,9 +2,12 @@
 
 #include "raylib.h"
 #include "Map.h"
+#include <vector>
 
 // Forward declarations
 class Player;
+class Enemy;
+class Entity;
 class GameCamera;
 
 class IsometricRenderer {
@@ -21,7 +24,8 @@ public:
     [[nodiscard]] Vector2 ScreenToTile(int screenX, int screenY) const noexcept;
 
     // Drawing with proper depth sorting
-    void DrawScene(const Map& map, const Player& player, Color playerColor) const;
+    void DrawScene(const Map& map, const Player& player, Color playerColor,
+                   const std::vector<Enemy>& enemies, Color enemyColor) const;
     
     // Individual drawing (for simple cases without depth sorting)
     void DrawTile(int x, int y, Color color, Color outlineColor) const;
@@ -33,7 +37,8 @@ public:
     void DrawPath(const Player& player, Color color) const;
 
 private:
-    void DrawPlayerAt(float tileX, float tileY, Color color) const;
+    void DrawEntityAt(float tileX, float tileY, Color color) const;
+    void DrawHealthBar(const Entity& entity, bool isPlayer) const;
     [[nodiscard]] bool IsTileVisible(int x, int y) const noexcept;
     void GetVisibleTileRange(const Map& map, int& startX, int& startY, int& endX, int& endY) const noexcept;
 

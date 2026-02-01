@@ -1,18 +1,19 @@
 #pragma once
 
-#include "raylib.h"
+#include "Entity.h"
 #include <vector>
 
 // Forward declaration
 class Map;
 
-class Player {
+// Player entity with movement and pathfinding
+class Player : public Entity {
 public:
     Player() = default;
-    ~Player() = default;
+    ~Player() override = default;
 
-    // Initialize player at a position
-    void Init(int tileX, int tileY);
+    // Initialize player at a position with health (default 100)
+    void Init(int tileX, int tileY, int health = 100);
 
     // Update player movement
     void Update(float deltaTime);
@@ -26,11 +27,7 @@ public:
     // Clear current path (stop moving)
     void ClearPath() noexcept;
 
-    // Getters
-    [[nodiscard]] int GetTileX() const noexcept { return m_tileX; }
-    [[nodiscard]] int GetTileY() const noexcept { return m_tileY; }
-    [[nodiscard]] float GetRenderX() const noexcept { return m_renderX; }
-    [[nodiscard]] float GetRenderY() const noexcept { return m_renderY; }
+    // Player-specific getters
     [[nodiscard]] bool IsMoving() const noexcept { return m_isMoving; }
     [[nodiscard]] const std::vector<Vector2>& GetPath() const noexcept { return m_path; }
     [[nodiscard]] size_t GetPathIndex() const noexcept { return m_pathIndex; }
@@ -43,17 +40,9 @@ private:
     // Calculate speed multiplier for current movement (diagonal vs orthogonal)
     [[nodiscard]] float GetCurrentSpeedMultiplier() const noexcept;
 
-    // Current tile position
-    int m_tileX{};
-    int m_tileY{};
-    
     // Previous tile position (to determine movement direction)
     int m_prevTileX{};
     int m_prevTileY{};
-
-    // Smooth rendering position (for animation)
-    float m_renderX{};
-    float m_renderY{};
 
     // Movement
     float m_moveSpeed{5.0f};

@@ -67,6 +67,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VCInstallDir)Auxiliary\VS\UnitTest\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -93,6 +94,9 @@
     <ClInclude Include="raylib.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="EnemyTests.cpp" />
+    <ClCompile Include="EntityTests.cpp" />
+    <ClCompile Include="IniParserTests.cpp" />
     <ClCompile Include="MapTests.cpp" />
     <ClCompile Include="PathfinderTests.cpp" />
     <ClCompile Include="MapGeneratorTests.cpp" />
@@ -110,6 +114,8 @@
     <ClCompile Include="..\Core\IniParser.cpp" />
     <ClCompile Include="..\Core\GameConfig.cpp" />
     <ClCompile Include="..\Core\TileConstants.cpp" />
+    <ClCompile Include="..\Entity.cpp" />
+    <ClCompile Include="..\Enemy.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

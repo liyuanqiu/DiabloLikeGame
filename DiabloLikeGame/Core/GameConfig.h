@@ -27,6 +27,9 @@ namespace Config {
     inline constexpr float PLAYER_HEIGHT = 24.0f;
     inline constexpr float PLAYER_WIDTH = 20.0f;
     
+    // Enemy
+    inline constexpr float ENEMY_SPAWN_RATE = 0.10f;
+    
     // Paths
     inline constexpr const char* DEFAULT_MAP_PATH = "maps/default.map";
 }
@@ -48,6 +51,7 @@ public:
     static float PlayerMoveSpeed() { return s_playerMoveSpeed; }
     static float PlayerHeight() { return s_playerHeight; }
     static float PlayerWidth() { return s_playerWidth; }
+    static float EnemySpawnRate() { return s_enemySpawnRate; }
     static const std::string& DefaultMapPath() { return s_defaultMapPath; }
 
 private:
@@ -61,5 +65,6 @@ private:
     inline static float s_playerMoveSpeed = Config::PLAYER_MOVE_SPEED;
     inline static float s_playerHeight = Config::PLAYER_HEIGHT;
     inline static float s_playerWidth = Config::PLAYER_WIDTH;
+    inline static float s_enemySpawnRate = Config::ENEMY_SPAWN_RATE;
     inline static std::string s_defaultMapPath = Config::DEFAULT_MAP_PATH;
 };

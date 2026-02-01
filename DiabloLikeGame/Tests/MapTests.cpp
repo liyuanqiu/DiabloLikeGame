@@ -1,5 +1,6 @@
 #include "CppUnitTest.h"
 #include "../Map.h"
+#include <filesystem>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -180,11 +181,88 @@ namespace MapTests
     TEST_CLASS(MapFileIO)
     {
     public:
+        // Helper to clean up test files
+        static constexpr const char* TEST_MAP_FILE = "test_map_temp.map";
+        
+        TEST_METHOD_CLEANUP(CleanupTestFile)
+        {
+            std::filesystem::remove(TEST_MAP_FILE);
+        }
+
         TEST_METHOD(LoadFromNonexistentFileReturnsFalse)
         {
             Map map;
             bool result = map.LoadFromFile("nonexistent_file.map");
             Assert::IsFalse(result);
+        }
+
+        TEST_METHOD(SaveAndLoadRoundTrip)
+        {
+            // Create and save a map
+            Map originalMap;
+            std::vector<TileType> data(9, TileType::Floor);
+            data[4] = TileType::Wall;
+            originalMap.Init("TestMap", 3, 3, data);
+            Assert::IsTrue(originalMap.SaveToFile(TEST_MAP_FILE));
+
+            // Load it back
+            Map loadedMap;
+            Assert::IsTrue(loadedMap.LoadFromFile(TEST_MAP_FILE));
+
+            // Verify
+            Assert::AreEqual(std::string("TestMap"), loadedMap.GetName());
+            Assert::AreEqual(3, loadedMap.GetWidth());
+            Assert::AreEqual(3, loadedMap.GetHeight());
+            Assert::IsTrue(TileType::Floor == loadedMap.GetTile(0, 0));
+            Assert::IsTrue(TileType::Wall == loadedMap.GetTile(1, 1));
+        }
+
+        TEST_METHOD(SaveToInvalidPathReturnsFalse)
+        {
+            Map map;
+            std::vector<TileType> data(4, TileType::Floor);
+            map.Init("Test", 2, 2, data);
+            // Try to save to an invalid path
+            bool result = map.SaveToFile("/invalid/path/that/does/not/exist/map.map");
+            Assert::IsFalse(result);
+        }
+
+        TEST_METHOD(LoadPreservesAllTileTypes)
+        {
+            // Create map with all tile types
+            Map originalMap;
+            std::vector<TileType> data = {
+                TileType::Empty, TileType::Floor,
+                TileType::Wall, TileType::Water
+            };
+            originalMap.Init("AllTypes", 2, 2, data);
+            Assert::IsTrue(originalMap.SaveToFile(TEST_MAP_FILE));
+
+            // Load and verify
+            Map loadedMap;
+            Assert::IsTrue(loadedMap.LoadFromFile(TEST_MAP_FILE));
+            Assert::IsTrue(TileType::Empty == loadedMap.GetTile(0, 0));
+            Assert::IsTrue(TileType::Floor == loadedMap.GetTile(1, 0));
+            Assert::IsTrue(TileType::Wall == loadedMap.GetTile(0, 1));
+            Assert::IsTrue(TileType::Water == loadedMap.GetTile(1, 1));
+        }
+
+        TEST_METHOD(SaveAndLoadLargeMap)
+        {
+            Map originalMap;
+            std::vector<TileType> data(100, TileType::Floor);
+            for (int i = 0; i < 100; i += 7) {
+                data[i] = TileType::Wall;
+            }
+            originalMap.Init("LargeMap", 10, 10, data);
+            Assert::IsTrue(originalMap.SaveToFile(TEST_MAP_FILE));
+
+            Map loadedMap;
+            Assert::IsTrue(loadedMap.LoadFromFile(TEST_MAP_FILE));
+            Assert::AreEqual(10, loadedMap.GetWidth());
+            Assert::AreEqual(10, loadedMap.GetHeight());
+            Assert::IsTrue(TileType::Wall == loadedMap.GetTile(0, 0));
+            Assert::IsTrue(TileType::Wall == loadedMap.GetTile(7, 0));
         }
     };
 

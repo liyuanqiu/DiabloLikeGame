@@ -71,10 +71,20 @@ Makefile
 .idea/
 .vscode/
 
+# Test Results and Code Coverage
+TestResults/
+*.coverage
+coverage_report.xml
+*.trx
+
 # Temporary files
 *.tmp
 *.temp
 *~
+
+# Temporary test files
+test_*.ini
+test_*.map
 
 # Maps (generated or user-created, optional)
 # maps/*.map

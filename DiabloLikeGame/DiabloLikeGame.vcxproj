@@ -133,6 +133,8 @@
     <ClCompile Include="Core\IniParser.cpp" />
     <ClCompile Include="Core\TileConstants.cpp" />
     <ClCompile Include="DiabloLikeGame.cpp" />
+    <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="Entity.cpp" />
     <ClCompile Include="Input\ControllerInput.cpp" />
     <ClCompile Include="Input\InputManager.cpp" />
     <ClCompile Include="Input\KeyboardInput.cpp" />
@@ -149,6 +151,8 @@
     <ClInclude Include="Core\GameConfig.h" />
     <ClInclude Include="Core\IniParser.h" />
     <ClInclude Include="Core\TileConstants.h" />
+    <ClInclude Include="Enemy.h" />
+    <ClInclude Include="Entity.h" />
     <ClInclude Include="Input\ControllerInput.h" />
     <ClInclude Include="Input\IInputDevice.h" />
     <ClInclude Include="Input\InputManager.h" />

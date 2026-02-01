@@ -2,9 +2,12 @@
 
 #include "../Map.h"
 #include "../Player.h"
+#include "../Enemy.h"
 #include "../Camera/Camera.h"
 #include "../IsometricRenderer.h"
 #include "GameConfig.h"
+#include <vector>
+#include <random>
 
 // Forward declarations
 class InputManager;
@@ -12,7 +15,7 @@ class InputManager;
 // Game class - manages game state and main loop
 class Game {
 public:
-    Game() = default;
+    Game();
     ~Game() = default;
     
     // Non-copyable
@@ -44,12 +47,19 @@ private:
     
     // Find valid spawn position for player
     [[nodiscard]] bool FindPlayerSpawnPosition(int& outX, int& outY) const;
+    
+    // Spawn enemies on floor tiles
+    void SpawnEnemies(float spawnRate);
 
     // Game objects
     Map m_map{};
     Player m_player{};
+    std::vector<Enemy> m_enemies{};
     GameCamera m_camera{};
     IsometricRenderer m_renderer{};
+    
+    // Random number generator
+    std::mt19937 m_rng;
     
     // State
     bool m_isRunning{false};
