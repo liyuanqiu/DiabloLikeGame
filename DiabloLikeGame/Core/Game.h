@@ -5,6 +5,7 @@
 #include "../Enemy.h"
 #include "../Camera/Camera.h"
 #include "../IsometricRenderer.h"
+#include "../World/OccupancyMap.h"
 #include "GameConfig.h"
 #include <vector>
 #include <random>
@@ -50,6 +51,9 @@ private:
     
     // Spawn enemies on floor tiles
     void SpawnEnemies(float spawnRate);
+    
+    // Initialize occupancy map with all entity positions
+    void InitOccupancyMap();
 
     // Game objects
     Map m_map{};
@@ -57,6 +61,7 @@ private:
     std::vector<Enemy> m_enemies{};
     GameCamera m_camera{};
     IsometricRenderer m_renderer{};
+    OccupancyMap m_occupancy{};
     
     // Random number generator
     std::mt19937 m_rng;

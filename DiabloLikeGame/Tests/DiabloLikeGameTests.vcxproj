@@ -67,7 +67,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VCInstallDir)Auxiliary\VS\UnitTest\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -101,7 +100,6 @@
     <ClCompile Include="PathfinderTests.cpp" />
     <ClCompile Include="MapGeneratorTests.cpp" />
     <ClCompile Include="CameraTests.cpp" />
-    <ClCompile Include="PlayerTests.cpp" />
     <ClCompile Include="InputTests.cpp" />
     <ClCompile Include="ConfigTests.cpp" />
     <!-- Source files from main project -->
@@ -115,6 +113,7 @@
     <ClCompile Include="..\Core\GameConfig.cpp" />
     <ClCompile Include="..\Core\TileConstants.cpp" />
     <ClCompile Include="..\Entity.cpp" />
+    <ClCompile Include="PlayerTests.cpp" />
     <ClCompile Include="..\Enemy.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

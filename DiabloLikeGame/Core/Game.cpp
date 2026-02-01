@@ -57,6 +57,9 @@ bool Game::Init()
     // Spawn enemies on 10% of floor tiles
     SpawnEnemies(Config::ENEMY_SPAWN_RATE);
     
+    // Initialize occupancy map with all entity positions
+    InitOccupancyMap();
+    
     m_isRunning = true;
     return true;
 }
@@ -104,8 +107,24 @@ void Game::SpawnEnemies(float spawnRate)
             // Randomly spawn enemy based on spawn rate with random health
             if (spawnDist(m_rng) < spawnRate) {
                 const int health = healthDist(m_rng);
-                m_enemies.emplace_back(x, y, health);
+                m_enemies.emplace_back(x, y, health, m_rng);
             }
+        }
+    }
+}
+
+void Game::InitOccupancyMap()
+{
+    m_occupancy.Clear();
+    m_occupancy.Reserve(m_enemies.size() + 1);
+    
+    // Mark player position
+    m_occupancy.SetOccupied(m_player.GetTileX(), m_player.GetTileY());
+    
+    // Mark all enemy positions
+    for (const auto& enemy : m_enemies) {
+        if (enemy.IsAlive()) {
+            m_occupancy.SetOccupied(enemy.GetTileX(), enemy.GetTileY());
         }
     }
 }
@@ -229,11 +248,11 @@ void Game::HandleKeyboardInput(InputManager& /*input*/)
     
     // Try to move
     if (dx != 0 || dy != 0) {
-        if (!m_player.MoveInDirection(dx, dy, m_map)) {
+        if (!m_player.MoveInDirection(dx, dy, m_map, m_occupancy)) {
             // If blocked, try single directions as fallback
             if (dx != 0 && dy != 0) {
-                if (!m_player.MoveInDirection(dx, 0, m_map)) {
-                    m_player.MoveInDirection(0, dy, m_map);
+                if (!m_player.MoveInDirection(dx, 0, m_map, m_occupancy)) {
+                    m_player.MoveInDirection(0, dy, m_map, m_occupancy);
                 }
             }
         }
@@ -264,11 +283,7 @@ void Game::HandleMouseInput(InputManager& input)
         
         if ((targetX != m_player.GetTileX() || targetY != m_player.GetTileY()) &&
             Pathfinder::IsTileWalkable(m_map, targetX, targetY)) {
-            auto path = Pathfinder::FindPath(
-                m_player.GetTileX(), m_player.GetTileY(),
-                targetX, targetY, m_map
-            );
-            m_player.SetPath(std::move(path));
+            m_player.SetPathToDestination(targetX, targetY, m_map, m_occupancy);
         }
     }
 }
@@ -338,10 +353,10 @@ void Game::HandleControllerInput(InputManager& input, float /*deltaTime*/)
         
         // Try to move
         if (dx != 0 || dy != 0) {
-            if (!m_player.MoveInDirection(dx, dy, m_map)) {
+            if (!m_player.MoveInDirection(dx, dy, m_map, m_occupancy)) {
                 if (dx != 0 && dy != 0) {
-                    if (!m_player.MoveInDirection(dx, 0, m_map)) {
-                        m_player.MoveInDirection(0, dy, m_map);
+                    if (!m_player.MoveInDirection(dx, 0, m_map, m_occupancy)) {
+                        m_player.MoveInDirection(0, dy, m_map, m_occupancy);
                     }
                 }
             }
@@ -351,7 +366,12 @@ void Game::HandleControllerInput(InputManager& input, float /*deltaTime*/)
 
 void Game::Update(float deltaTime)
 {
-    m_player.Update(deltaTime);
+    m_player.Update(deltaTime, m_map, m_occupancy);
+    
+    // Update all enemies (wandering behavior)
+    for (auto& enemy : m_enemies) {
+        enemy.Update(deltaTime, m_map, m_occupancy, m_rng);
+    }
 }
 
 void Game::Render()

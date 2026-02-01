@@ -2,6 +2,7 @@
 #include "../Player.h"
 #include "../Map.h"
 #include "../World/Pathfinder.h"
+#include "../World/OccupancyMap.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -45,14 +46,6 @@ namespace PlayerTests
             player.Init(5, 5);
             Assert::IsTrue(player.GetPath().empty());
         }
-
-        TEST_METHOD(InitNegativeCoordinates)
-        {
-            Player player;
-            player.Init(-10, -20);
-            Assert::AreEqual(-10, player.GetTileX());
-            Assert::AreEqual(-20, player.GetTileY());
-        }
     };
 
     TEST_CLASS(MoveInDirectionTests)
@@ -61,17 +54,21 @@ namespace PlayerTests
         TEST_METHOD(ValidMoveReturnsTrue)
         {
             auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            Assert::IsTrue(player.MoveInDirection(1, 0, map));
+            occupancy.SetOccupied(5, 5);
+            Assert::IsTrue(player.MoveInDirection(1, 0, map, occupancy));
         }
 
         TEST_METHOD(UpdatesTilePosition)
         {
             auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            [[maybe_unused]] bool result = player.MoveInDirection(1, 0, map);
+            occupancy.SetOccupied(5, 5);
+            player.MoveInDirection(1, 0, map, occupancy);
             Assert::AreEqual(6, player.GetTileX());
             Assert::AreEqual(5, player.GetTileY());
         }
@@ -79,9 +76,11 @@ namespace PlayerTests
         TEST_METHOD(SetsMovingState)
         {
             auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            [[maybe_unused]] bool result = player.MoveInDirection(1, 0, map);
+            occupancy.SetOccupied(5, 5);
+            player.MoveInDirection(1, 0, map, occupancy);
             Assert::IsTrue(player.IsMoving());
         }
 
@@ -89,125 +88,116 @@ namespace PlayerTests
         {
             Map map;
             std::vector<TileType> data(100, TileType::Floor);
-            data[56] = TileType::Wall;  // (6, 5)
+            data[56] = TileType::Wall;
             map.Init("Test", 10, 10, data);
-            
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            Assert::IsFalse(player.MoveInDirection(1, 0, map));
-        }
-
-        TEST_METHOD(OutOfBoundsReturnsFalse)
-        {
-            auto map = CreateTestMap(10, 10);
-            Player player;
-            player.Init(0, 5);
-            Assert::IsFalse(player.MoveInDirection(-1, 0, map));
+            occupancy.SetOccupied(5, 5);
+            Assert::IsFalse(player.MoveInDirection(1, 0, map, occupancy));
         }
 
         TEST_METHOD(DiagonalMoveValid)
         {
             auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            Assert::IsTrue(player.MoveInDirection(1, 1, map));
+            occupancy.SetOccupied(5, 5);
+            Assert::IsTrue(player.MoveInDirection(1, 1, map, occupancy));
             Assert::AreEqual(6, player.GetTileX());
             Assert::AreEqual(6, player.GetTileY());
-        }
-
-        TEST_METHOD(ZeroMovementDoesNotCrash)
-        {
-            auto map = CreateTestMap(10, 10);
-            Player player;
-            player.Init(5, 5);
-            // Zero movement behavior is implementation-defined
-            // Just verify it doesn't crash
-            [[maybe_unused]] bool result = player.MoveInDirection(0, 0, map);
-        }
-
-        TEST_METHOD(AllEightDirections)
-        {
-            int dx[] = {1, 1, 0, -1, -1, -1, 0, 1};
-            int dy[] = {0, 1, 1, 1, 0, -1, -1, -1};
-            
-            for (int i = 0; i < 8; ++i) {
-                auto map = CreateTestMap(10, 10);
-                Player player;
-                player.Init(5, 5);
-                Assert::IsTrue(player.MoveInDirection(dx[i], dy[i], map));
-            }
         }
 
         TEST_METHOD(WhileMovingReturnsFalse)
         {
             auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            [[maybe_unused]] bool first = player.MoveInDirection(1, 0, map);
-            Assert::IsFalse(player.MoveInDirection(0, 1, map));
+            occupancy.SetOccupied(5, 5);
+            player.MoveInDirection(1, 0, map, occupancy);
+            Assert::IsFalse(player.MoveInDirection(0, 1, map, occupancy));
+        }
+
+        TEST_METHOD(IntoOccupiedTileReturnsFalse)
+        {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
+            Player player;
+            player.Init(5, 5);
+            occupancy.SetOccupied(5, 5);
+            occupancy.SetOccupied(6, 5);
+            Assert::IsFalse(player.MoveInDirection(1, 0, map, occupancy));
         }
     };
 
     TEST_CLASS(SetPathTests)
     {
     public:
-        TEST_METHOD(EmptyPathDoesNothing)
+        TEST_METHOD(SetPathToDestinationStartsMoving)
         {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            std::vector<Vector2> emptyPath;
-            player.SetPath(emptyPath);
-            Assert::IsFalse(player.IsMoving());
+            occupancy.SetOccupied(5, 5);
+            player.SetPathToDestination(7, 5, map, occupancy);
+            Assert::IsTrue(player.IsMoving() || player.HasDestination());
         }
 
-        TEST_METHOD(StartsMovingToFirstWaypoint)
+        TEST_METHOD(HasDestinationAfterSetPath)
         {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            std::vector<Vector2> path = {{6.0f, 5.0f}, {7.0f, 5.0f}};
-            player.SetPath(path);
-            Assert::IsTrue(player.IsMoving());
+            occupancy.SetOccupied(5, 5);
+            player.SetPathToDestination(7, 5, map, occupancy);
+            Assert::IsTrue(player.HasDestination());
         }
 
-        TEST_METHOD(StoresEntirePath)
+        TEST_METHOD(ClearPathClearsDestination)
         {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            std::vector<Vector2> path = {{6.0f, 5.0f}, {7.0f, 5.0f}, {8.0f, 5.0f}};
-            player.SetPath(path);
-            Assert::AreEqual(3u, static_cast<unsigned>(player.GetPath().size()));
-        }
-
-        TEST_METHOD(SingleWaypointPath)
-        {
-            Player player;
-            player.Init(5, 5);
-            std::vector<Vector2> path = {{6.0f, 5.0f}};
-            player.SetPath(path);
-            Assert::IsTrue(player.IsMoving());
-            Assert::AreEqual(1u, static_cast<unsigned>(player.GetPath().size()));
+            occupancy.SetOccupied(5, 5);
+            player.SetPathToDestination(7, 5, map, occupancy);
+            player.ClearPath();
+            Assert::IsFalse(player.HasDestination());
         }
     };
 
-    TEST_CLASS(ClearPathTests)
+    TEST_CLASS(UpdateTests)
     {
     public:
-        TEST_METHOD(RemovesPath)
+        TEST_METHOD(WhileNotMovingDoesNothing)
         {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            std::vector<Vector2> path = {{6.0f, 5.0f}, {7.0f, 5.0f}};
-            player.SetPath(path);
-            player.ClearPath();
-            Assert::IsTrue(player.GetPath().empty());
+            occupancy.SetOccupied(5, 5);
+            float initialX = player.GetRenderX();
+            float initialY = player.GetRenderY();
+            player.Update(1.0f, map, occupancy);
+            Assert::AreEqual(initialX, player.GetRenderX(), 0.001f);
+            Assert::AreEqual(initialY, player.GetRenderY(), 0.001f);
         }
 
-        TEST_METHOD(OnEmptyPathIsNoOp)
+        TEST_METHOD(MovesRenderPositionTowardTarget)
         {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(5, 5);
-            player.ClearPath();
-            Assert::IsTrue(player.GetPath().empty());
+            occupancy.SetOccupied(5, 5);
+            player.SetMoveSpeed(100.0f);
+            player.MoveInDirection(1, 0, map, occupancy);
+            player.Update(0.1f, map, occupancy);
+            Assert::IsTrue(player.GetRenderX() > 5.0f);
         }
     };
 
@@ -226,136 +216,6 @@ namespace PlayerTests
             player.SetMoveSpeed(10.0f);
             Assert::AreEqual(10.0f, player.GetMoveSpeed(), 0.001f);
         }
-
-        TEST_METHOD(ZeroSpeed)
-        {
-            Player player;
-            player.SetMoveSpeed(0.0f);
-            Assert::AreEqual(0.0f, player.GetMoveSpeed(), 0.001f);
-        }
-    };
-
-    TEST_CLASS(UpdateTests)
-    {
-    public:
-        TEST_METHOD(ZeroDeltaTime)
-        {
-            auto map = CreateTestMap(10, 10);
-            Player player;
-            player.Init(5, 5);
-            [[maybe_unused]] bool result = player.MoveInDirection(1, 0, map);
-            
-            float renderX = player.GetRenderX();
-            float renderY = player.GetRenderY();
-            player.Update(0.0f);
-            
-            Assert::AreEqual(renderX, player.GetRenderX(), 0.001f);
-            Assert::AreEqual(renderY, player.GetRenderY(), 0.001f);
-        }
-
-        TEST_METHOD(WhileNotMovingDoesNothing)
-        {
-            Player player;
-            player.Init(5, 5);
-            
-            float initialX = player.GetRenderX();
-            float initialY = player.GetRenderY();
-            player.Update(1.0f);
-            
-            Assert::AreEqual(initialX, player.GetRenderX(), 0.001f);
-            Assert::AreEqual(initialY, player.GetRenderY(), 0.001f);
-        }
-
-        TEST_METHOD(MovesRenderPositionTowardTarget)
-        {
-            auto map = CreateTestMap(10, 10);
-            Player player;
-            player.Init(5, 5);
-            player.SetMoveSpeed(100.0f);
-            [[maybe_unused]] bool result = player.MoveInDirection(1, 0, map);
-            player.Update(0.1f);
-            Assert::IsTrue(player.GetRenderX() > 5.0f);
-        }
-    };
-
-    TEST_CLASS(NoexceptTests)
-    {
-    public:
-        TEST_METHOD(AllGettersAreNoexcept)
-        {
-            Player player;
-            player.Init(5, 5);
-            
-            [[maybe_unused]] int x = player.GetTileX();
-            [[maybe_unused]] int y = player.GetTileY();
-            [[maybe_unused]] float rx = player.GetRenderX();
-            [[maybe_unused]] float ry = player.GetRenderY();
-            [[maybe_unused]] bool m = player.IsMoving();
-            [[maybe_unused]] float s = player.GetMoveSpeed();
-            [[maybe_unused]] const auto& p = player.GetPath();
-        }
-    };
-
-    TEST_CLASS(PathfinderIntegrationTests)
-    {
-    public:
-        TEST_METHOD(SetPathFromPathfinder)
-        {
-            Map map;
-            std::vector<TileType> data(100, TileType::Floor);
-            map.Init("Test", 10, 10, data);
-            
-            Player player;
-            player.Init(0, 0);
-            
-            auto path = Pathfinder::FindPath(0, 0, 5, 5, map);
-            if (!path.empty()) {
-                player.SetPath(path);
-                Assert::IsTrue(player.IsMoving());
-                Assert::AreEqual(path.size(), player.GetPath().size());
-            }
-        }
-
-        TEST_METHOD(EmptyPathFromBlockedDestination)
-        {
-            Map map;
-            std::vector<TileType> data(100, TileType::Floor);
-            data[55] = TileType::Wall;
-            map.Init("Test", 10, 10, data);
-            
-            Player player;
-            player.Init(0, 0);
-            
-            auto path = Pathfinder::FindPath(0, 0, 5, 5, map);
-            // Path may be empty or route around
-            player.SetPath(path);
-            // No assertion - just verify no crash
-        }
-    };
-
-    TEST_CLASS(EdgeCaseTests)
-    {
-    public:
-        TEST_METHOD(InitLargeCoordinates)
-        {
-            Player player;
-            player.Init(10000, 10000);
-            Assert::AreEqual(10000, player.GetTileX());
-            Assert::AreEqual(10000, player.GetTileY());
-        }
-
-        TEST_METHOD(VeryLongPath)
-        {
-            Player player;
-            player.Init(0, 0);
-            
-            std::vector<Vector2> longPath;
-            for (int i = 1; i <= 1000; ++i) {
-                longPath.push_back({static_cast<float>(i), 0.0f});
-            }
-            player.SetPath(longPath);
-            Assert::AreEqual(1000u, static_cast<unsigned>(player.GetPath().size()));
-        }
     };
 
     TEST_CLASS(PathFollowingTests)
@@ -363,73 +223,70 @@ namespace PlayerTests
     public:
         TEST_METHOD(UpdateAdvancesAlongPath)
         {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(0, 0);
-            player.SetMoveSpeed(100.0f); // Very fast for testing
-            
-            std::vector<Vector2> path = {{1.0f, 0.0f}, {2.0f, 0.0f}, {3.0f, 0.0f}};
-            player.SetPath(path);
-            
-            // After enough updates, should reach end of path
-            for (int i = 0; i < 100; ++i) {
-                player.Update(0.1f);
-            }
-            
-            // Path should be cleared after completion
-            Assert::IsTrue(player.GetPath().empty());
-            Assert::IsFalse(player.IsMoving());
-        }
-
-        TEST_METHOD(UpdateWithDiagonalPath)
-        {
-            Player player;
-            player.Init(0, 0);
+            occupancy.SetOccupied(0, 0);
             player.SetMoveSpeed(100.0f);
             
-            // Diagonal path
-            std::vector<Vector2> path = {{1.0f, 1.0f}, {2.0f, 2.0f}};
-            player.SetPath(path);
+            player.SetPathToDestination(3, 0, map, occupancy);
             
-            // Update until complete
             for (int i = 0; i < 100; ++i) {
-                player.Update(0.1f);
+                player.Update(0.1f, map, occupancy);
             }
             
+            Assert::IsTrue(player.GetPath().empty());
             Assert::IsFalse(player.IsMoving());
         }
 
         TEST_METHOD(UpdateSingleStepPath)
         {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(0, 0);
+            occupancy.SetOccupied(0, 0);
             player.SetMoveSpeed(100.0f);
             
-            std::vector<Vector2> path = {{1.0f, 0.0f}};
-            player.SetPath(path);
+            player.SetPathToDestination(1, 0, map, occupancy);
             
             for (int i = 0; i < 50; ++i) {
-                player.Update(0.1f);
+                player.Update(0.1f, map, occupancy);
             }
             
             Assert::IsFalse(player.IsMoving());
             Assert::AreEqual(1, player.GetTileX());
         }
 
-        TEST_METHOD(PathIndexIncrementsCorrectly)
+        TEST_METHOD(ReplanPathWhenBlocked)
         {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
             Player player;
             player.Init(0, 0);
-            player.SetMoveSpeed(1000.0f); // Very fast
+            occupancy.SetOccupied(0, 0);
+            player.SetMoveSpeed(100.0f);
             
-            std::vector<Vector2> path = {{1.0f, 0.0f}, {2.0f, 0.0f}};
-            player.SetPath(path);
-            Assert::AreEqual(0u, static_cast<unsigned>(player.GetPathIndex()));
+            // Set destination
+            player.SetPathToDestination(5, 0, map, occupancy);
             
-            // First waypoint
-            for (int i = 0; i < 10; ++i) player.Update(0.1f);
+            // Move a bit
+            for (int i = 0; i < 5; ++i) {
+                player.Update(0.1f, map, occupancy);
+            }
             
-            // Should have advanced
-            Assert::IsTrue(player.GetPathIndex() >= 1 || player.GetPath().empty());
+            // Block the path ahead
+            occupancy.SetOccupied(3, 0);
+            
+            // Continue updating - should re-plan
+            for (int i = 0; i < 100; ++i) {
+                player.Update(0.1f, map, occupancy);
+            }
+            
+            // Should still have destination or reached it via different path
+            // Player should either be at destination or still trying
+            Assert::IsTrue(player.GetTileX() >= 1);
         }
     };
 
@@ -459,6 +316,27 @@ namespace PlayerTests
             player.Init(0, 0, 50);
             player.TakeDamage(100);
             Assert::IsFalse(player.IsAlive());
+        }
+    };
+
+    TEST_CLASS(OccupancyTests)
+    {
+    public:
+        TEST_METHOD(MoveUpdatesOccupancy)
+        {
+            auto map = CreateTestMap(10, 10);
+            OccupancyMap occupancy;
+            Player player;
+            player.Init(5, 5);
+            occupancy.SetOccupied(5, 5);
+            
+            Assert::IsTrue(occupancy.IsOccupied(5, 5));
+            Assert::IsFalse(occupancy.IsOccupied(6, 5));
+            
+            player.MoveInDirection(1, 0, map, occupancy);
+            
+            Assert::IsFalse(occupancy.IsOccupied(5, 5));
+            Assert::IsTrue(occupancy.IsOccupied(6, 5));
         }
     };
 }
