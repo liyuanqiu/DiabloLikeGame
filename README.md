@@ -8,13 +8,13 @@ A 2D isometric action RPG prototype built with C++17 and [raylib](https://www.ra
 
 ## Features
 
-### ?? Multiple Input Methods
+### Multiple Input Methods
 - **Keyboard (WASD)**: 8-directional movement aligned with isometric view
 - **Mouse (Click-to-Move)**: Click on any walkable tile to pathfind and move automatically
 - **Controller**: Full gamepad support with analog stick movement and camera control
 - Runtime input mode switching via dropdown UI
 
-### ??? Procedural Map Generation
+### Procedural Map Generation
 - **Cellular Automata Algorithm**: Generates natural-looking cave systems
 - Configurable parameters:
   - Map size (default 200x200 tiles)
@@ -22,19 +22,19 @@ A 2D isometric action RPG prototype built with C++17 and [raylib](https://www.ra
   - Water pool generation
 - Supports islands, valleys, and isolated terrain features
 
-### ?? A* Pathfinding
-- 8-directional movement with proper diagonal costs (¡Ì2)
+### A* Pathfinding
+- 8-directional movement with proper diagonal costs (âˆš2)
 - Corner-cutting prevention through walls
 - Visual path preview with dashed green lines
 - Efficient hash-based open/closed sets
 
-### ?? Isometric Rendering
+### Isometric Rendering
 - Diamond-shaped tile projection (64x32 pixels)
 - Proper depth sorting with player occlusion by walls
 - 3D-style wall blocks with shading
 - Frustum culling for performance
 
-### ?? Smooth Movement System
+### Smooth Movement System
 - Grid-based logical positions with smooth visual interpolation
 - Diagonal movement takes proportionally longer (realistic timing)
 - Path following with automatic waypoint advancement
@@ -43,25 +43,25 @@ A 2D isometric action RPG prototype built with C++17 and [raylib](https://www.ra
 
 ```
 DiabloLikeGame/
-©À©¤©¤ Core/
-©¦   ©À©¤©¤ Game.cpp/.h           # Main game loop and state management
-©¦   ©À©¤©¤ GameConfig.h          # Configuration constants
-©¦   ©¸©¤©¤ TileConstants.h       # Isometric tile dimensions
-©À©¤©¤ Camera/
-©¦   ©¸©¤©¤ Camera.cpp/.h         # View transformation and culling
-©À©¤©¤ Input/
-©¦   ©À©¤©¤ IInputDevice.h        # Input device interface
-©¦   ©À©¤©¤ InputManager.cpp/.h   # Input aggregation (singleton)
-©¦   ©À©¤©¤ KeyboardInput.cpp/.h  # Keyboard implementation
-©¦   ©À©¤©¤ MouseInput.cpp/.h     # Mouse with drag detection
-©¦   ©¸©¤©¤ ControllerInput.cpp/.h# Gamepad with deadzone handling
-©À©¤©¤ World/
-©¦   ©À©¤©¤ MapGenerator.cpp/.h   # Procedural cave generation
-©¦   ©¸©¤©¤ Pathfinder.cpp/.h     # A* pathfinding algorithm
-©À©¤©¤ Map.cpp/.h                # Tile map data structure
-©À©¤©¤ Player.cpp/.h             # Player entity with movement
-©À©¤©¤ IsometricRenderer.cpp/.h  # Rendering system
-©¸©¤©¤ DiabloLikeGame.cpp        # Entry point
+|-- Core/
+|   |-- Game.cpp/.h              # Main game loop and state management
+|   |-- GameConfig.h             # Configuration constants
+|   \-- TileConstants.h          # Isometric tile dimensions
+|-- Camera/
+|   \-- Camera.cpp/.h            # View transformation and culling
+|-- Input/
+|   |-- IInputDevice.h           # Input device interface
+|   |-- InputManager.cpp/.h      # Input aggregation (singleton)
+|   |-- KeyboardInput.cpp/.h     # Keyboard implementation
+|   |-- MouseInput.cpp/.h        # Mouse with drag detection
+|   \-- ControllerInput.cpp/.h   # Gamepad with deadzone handling
+|-- World/
+|   |-- MapGenerator.cpp/.h      # Procedural cave generation
+|   \-- Pathfinder.cpp/.h        # A* pathfinding algorithm
+|-- Map.cpp/.h                   # Tile map data structure
+|-- Player.cpp/.h                # Player entity with movement
+|-- IsometricRenderer.cpp/.h     # Rendering system
+\-- DiabloLikeGame.cpp           # Entry point
 ```
 
 ## Technical Details
