@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
+    <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{f119eb9e-a9e9-4f4c-b91b-c1d76df26d28}</ProjectGuid>
     <RootNamespace>DiabloLikeGame</RootNamespace>
