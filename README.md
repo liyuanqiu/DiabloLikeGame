@@ -100,35 +100,31 @@ Tile dimensions:
 
 ### Prerequisites
 - **Visual Studio 2022** (or later) with C++ desktop development workload
-- **vcpkg** package manager
-- **raylib** library (installed via vcpkg)
+- **vcpkg** package manager (with MSBuild integration)
 
 ### Setup Instructions
 
-1. **Clone the repository**
+1. **Install vcpkg** (if not already installed)
+   ```powershell
+   git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+   cd C:\vcpkg
+   .\bootstrap-vcpkg.bat
+   .\vcpkg integrate install
+   ```
+
+2. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/DiabloLikeGame.git
+   git clone https://github.com/liyuanqiu/DiabloLikeGame.git
    cd DiabloLikeGame
    ```
 
-2. **Install raylib via vcpkg**
-   ```bash
-   vcpkg install raylib:x64-windows
-   ```
-
-3. **Integrate vcpkg with Visual Studio** (if not already done)
-   ```bash
-   vcpkg integrate install
-   ```
-
-4. **Open the solution**
+3. **Open and Build**
    - Open `DiabloLikeGame.sln` in Visual Studio
-
-5. **Build and Run**
    - Select **Debug** or **Release** configuration
    - Select **x64** platform
-   - Press `F5` to build and run with debugging
-   - Or press `Ctrl+F5` to run without debugging
+   - Build the solution (dependencies will be automatically installed via vcpkg manifest mode)
+
+> **Note**: The project uses `vcpkg.json` manifest mode. raylib and other dependencies will be automatically downloaded and built on first compile.
 
 ### Configuration
 

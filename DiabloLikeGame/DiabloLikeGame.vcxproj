@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -179,6 +179,7 @@
     <ClInclude Include="World\Pathfinder.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\sprites\SPRITE_SPEC.md" />
     <None Include="config\enemies\goblin.ini" />
     <None Include="config\enemies\skeleton.ini" />
     <None Include="config\enemies\slime.ini" />
