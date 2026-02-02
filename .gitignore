@@ -110,3 +110,6 @@ MapGenerator/x64/
 MapGenerator/bin/
 DiabloLikeGame/x64/
 DiabloLikeGame/Tests/x64/
+
+# CodeQL generated files
+_codeql_detected_source_root
