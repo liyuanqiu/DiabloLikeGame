@@ -58,7 +58,10 @@ public:
     void SetAggressive(bool aggressive) noexcept { m_isAggressive = aggressive; }
     
     // Visual
-    [[nodiscard]] Color GetColor() const noexcept { return m_color; }
+    [[nodiscard]] Color GetColor() const noexcept { 
+        if (IsHit()) return Color{255, 255, 255, 255};
+        return m_color; 
+    }
 
 private:
 // Behavior updates based on aggression type
@@ -134,3 +137,4 @@ bool TryMoveTowardSpawn(const Map& map, OccupancyMap& occupancy);
     // Visual
     Color m_color{230, 41, 55, 255};
 };
+

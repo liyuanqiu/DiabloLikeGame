@@ -153,6 +153,9 @@ void Enemy::Update(float deltaTime, const Map& map, OccupancyMap& occupancy,
     
     // Update punch animation
     UpdatePunch(deltaTime);
+
+    // Update hit reaction
+    UpdateHit(deltaTime);
     
     // Process punch hit at peak of animation
     if (IsPunching() && !IsPunchHitProcessed() && player && player->IsAlive()) {
@@ -632,3 +635,4 @@ void Enemy::UpdateWanderingBehavior(float deltaTime, const Map& map, OccupancyMa
     }
     // Note: pause after successful move is set in Update() when m_isMoving becomes false
 }
+

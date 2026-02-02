@@ -65,7 +65,7 @@ bool Game::Init()
     m_player.SetPunchDuration(playerConfig.punchDuration);
     
     // Load player sprite (try real asset first, fallback to placeholder)
-    if (!m_player.LoadSprite("assets/sprites/player_spritesheet.png")) {
+    if (!m_player.LoadSprite("assets/sprites/player_spritesheet_novice.png")) {
         // Generate and use placeholder sprite for testing
         TraceLog(LOG_INFO, "Generating placeholder sprite sheet...");
         Texture2D placeholderTexture = PlaceholderSprite::GeneratePlayerSheet();
@@ -514,7 +514,7 @@ void Game::Render()
     ClearBackground(Color{30, 30, 40, 255});
     
     // Draw scene with proper depth sorting (player and enemies can be occluded by walls)
-    static constexpr Color playerColor = {100, 200, 255, 255};  // Light blue for player
+    static constexpr Color playerColor = {194, 178, 128, 255};  // Ecru/Beige for novice player (ËØÒÂ)
     static constexpr Color enemyColor = {230, 41, 55, 255};      // Red for enemies
     m_renderer.DrawScene(m_map, m_player, playerColor, m_enemies, enemyColor);
     

@@ -264,6 +264,9 @@ void Player::Update(float deltaTime, const Map& map, OccupancyMap& occupancy)
     // Update punch animation
     UpdatePunch(deltaTime);
     
+    // Update hit reaction
+    UpdateHit(deltaTime);
+    
     // Update combat state
     UpdateCombatState();
     
@@ -373,6 +376,8 @@ void Player::UpdateAnimationState()
     
     if (!IsAlive()) {
         newState = AnimationState::Die;
+    } else if (IsHit()) {
+        newState = AnimationState::Hit;
     } else if (IsPunching()) {
         newState = AnimationState::Attack;
     } else if (m_isMoving) {
@@ -387,3 +392,4 @@ void Player::UpdateAnimationState()
     // Always update direction
     m_animator.SetDirection(GetFacing());
 }
+

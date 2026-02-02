@@ -39,6 +39,10 @@ public:
     void StartPunch() noexcept;
     void UpdatePunch(float deltaTime) noexcept;
     
+    // Hit/Damage reaction state
+    [[nodiscard]] bool IsHit() const noexcept { return m_isHit; }
+    void UpdateHit(float deltaTime) noexcept;
+    
     // Alive state
     [[nodiscard]] bool IsAlive() const noexcept { return m_isAlive; }
     void Kill() noexcept { m_isAlive = false; }
@@ -77,6 +81,11 @@ protected:
     float m_punchDuration{0.25f}; // Configurable punch animation time
     bool m_punchHitProcessed{false};  // Track if current punch has dealt damage
     
+    // Hit reaction state
+    bool m_isHit{false};
+    float m_hitTimer{0.0f};
+    float m_hitDuration{0.3f};  // Default hit animation duration (3 frames * 0.1s)
+    
     // Health
     int m_health{100};
     int m_maxHealth{100};
@@ -85,3 +94,4 @@ protected:
     // State
     bool m_isAlive{true};
 };
+

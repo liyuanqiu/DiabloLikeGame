@@ -11,6 +11,7 @@ public:
     // Returns a valid Texture2D that must be unloaded when done
     static Texture2D GeneratePlayerSheet()
     {
+        TraceLog(LOG_INFO, "Generating Player Sheet from PlaceholderSprite.h (New Colors)");
         constexpr int kFrameWidth = 64;
         constexpr int kFrameHeight = 64;
         constexpr int kDirections = 8;
@@ -29,23 +30,24 @@ public:
         Image image = GenImageColor(width, height, BLANK);
         
         // Direction angles (S, SW, W, NW, N, NE, E, SE) in radians
+        // Adjusted for isometric view where N is Top-Right (45 degrees)
         const float angles[] = {
-            3.14159f,      // S (180бу)
-            3.92699f,      // SW (225бу)
-            4.71239f,      // W (270бу)
-            5.49779f,      // NW (315бу)
-            0.0f,          // N (0бу)
-            0.78540f,      // NE (45бу)
-            1.57080f,      // E (90бу)
-            2.35619f       // SE (135бу)
+            3.92699f,      // S (225бу - Down-Left)
+            4.71239f,      // SW (270бу - Left)
+            5.49779f,      // W (315бу - Up-Left)
+            0.0f,          // NW (0бу - Up)
+            0.78540f,      // N (45бу - Up-Right)
+            1.57080f,      // NE (90бу - Right)
+            2.35619f,      // E (135бу - Down-Right)
+            3.14159f       // SE (180бу - Down)
         };
         
         // State colors
         const Color stateColors[] = {
-            {100, 149, 237, 255},  // Idle - Cornflower blue
-            {50, 205, 50, 255},    // Walk - Lime green
-            {255, 69, 0, 255},     // Attack - Red-orange
-            {255, 215, 0, 255},    // Hit - Gold
+            {194, 178, 128, 255},  // Idle - Ecru/Beige (╦╪╥┬)
+            {180, 160, 110, 255},  // Walk - Darker Beige
+            {205, 92, 92, 255},    // Attack - Indian Red (Earthy)
+            {200, 50, 50, 255},    // Hit - Bright Red (Clearly visible)
             {128, 128, 128, 255},  // Die - Gray
         };
         
@@ -86,7 +88,7 @@ public:
         };
         
         // Generate frames for each state
-        auto generateFrames = [&](int startRow, int frameCount, Color baseColor, bool isAttack = false, bool isDie = false) {
+        auto generateFrames = [&](int startRow, int frameCount, Color baseColor, bool isAttack = false, bool isDie = false, bool isHit = false) {
             for (int frame = 0; frame < frameCount; ++frame) {
                 for (int dir = 0; dir < kDirections; ++dir) {
                     const int x = dir * kFrameWidth + kFrameWidth / 2;
@@ -96,10 +98,19 @@ public:
                     
                     // Calculate radius based on state
                     int radius = 18;
+                    int xOffset = 0;
+                    int yOffset = 0;
+                    
                     if (isAttack) {
                         radius = 15 + static_cast<int>(progress * 12);
                     } else if (isDie) {
                         radius = 18 - static_cast<int>(progress * 8);
+                        yOffset = static_cast<int>(progress * 8);
+                    } else if (isHit) {
+                        // Recoil effect (shake/shrink)
+                        radius = 18 - static_cast<int>(std::sin(progress * 3.14f) * 4.0f);
+                        // Shake horizontally relative to direction? simple jitter for now
+                        xOffset = (frame % 2 == 0) ? -2 : 2;
                     } else {
                         float pulse = 0.9f + 0.1f * std::sin(progress * 6.28f);
                         radius = static_cast<int>(18 * pulse);
@@ -112,15 +123,16 @@ public:
                     }
                     
                     // Draw body
-                    int yOffset = isDie ? static_cast<int>(progress * 8) : 0;
-                    drawCircle(x, y + yOffset, radius, color);
+                    drawCircle(x + xOffset, y + yOffset, radius, color);
                     
-                    // Draw direction indicator
-                    float angle = angles[dir];
-                    int lineLen = isAttack ? (12 + static_cast<int>(progress * 15)) : 12;
-                    int endX = x + static_cast<int>(std::sin(angle) * lineLen);
-                    int endY = y + yOffset - static_cast<int>(std::cos(angle) * lineLen);
-                    drawLine(x, y + yOffset, endX, endY, WHITE);
+                    // Draw direction indicator (white line)
+                    if (!isDie) {  // Don't draw direction when dying
+                        float angle = angles[dir];
+                        int lineLen = isAttack ? (12 + static_cast<int>(progress * 6)) : 12;
+                        int endX = x + xOffset + static_cast<int>(std::sin(angle) * lineLen);
+                        int endY = y + yOffset - static_cast<int>(std::cos(angle) * lineLen);
+                        drawLine(x + xOffset, y + yOffset, endX, endY, WHITE);
+                    }
                 }
             }
         };
@@ -138,7 +150,7 @@ public:
         currentRow += kAttackFrames;
         
         // Hit
-        generateFrames(currentRow, kHitFrames, stateColors[3]);
+        generateFrames(currentRow, kHitFrames, stateColors[3], false, false, true);
         currentRow += kHitFrames;
         
         // Die

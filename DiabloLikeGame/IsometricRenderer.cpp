@@ -247,15 +247,18 @@ void IsometricRenderer::DrawDirectionArrow(float screenX, float screenY, Directi
     const Color arrowColor = {255, 220, 50, 255};
     const Color arrowOutline = {180, 150, 30, 255};
     
-    // Draw arrow shaft (thick line)
-    DrawLineEx(start, end, 3.0f, arrowColor);
-    DrawLineEx(start, end, 1.0f, arrowOutline);
+    // Draw arrow shaft (outline first, then fill)
+    DrawLineEx(start, end, 4.0f, arrowOutline);
+    DrawLineEx(start, end, 2.0f, arrowColor);
     
-    // Draw arrow head
-    DrawTriangle(end, head1, head2, arrowColor);
-    DrawLineV(end, head1, arrowOutline);
-    DrawLineV(end, head2, arrowOutline);
-    DrawLineV(head1, head2, arrowOutline);
+    // Draw arrow head using lines to ensure visibility
+    // Outline
+    DrawLineEx(end, head1, 4.0f, arrowOutline);
+    DrawLineEx(end, head2, 4.0f, arrowOutline);
+    
+    // Fill
+    DrawLineEx(end, head1, 2.0f, arrowColor);
+    DrawLineEx(end, head2, 2.0f, arrowColor);
 }
 
 void IsometricRenderer::DrawPlayer(const Player& player, Color color) const
@@ -534,7 +537,22 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
         while (entityIdx < entities.size() && entities[entityIdx].depth < static_cast<float>(depth + 1)) {
             const auto& e = entities[entityIdx];
             if (e.depth >= static_cast<float>(depth)) {
-                DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, e.punchProgress);
+                bool drawn = false;
+                if (e.isPlayer && e.entity) {
+                    const Player* player = static_cast<const Player*>(e.entity);
+                    if (player->HasSprite()) {
+                        // Draw shadow
+                        DrawEllipse(static_cast<int>(e.renderX), static_cast<int>(e.renderY + TILE_HEIGHT / 2.0f), 
+                                    10.0f, 5.0f, TileColors::Shadow());
+                        DrawPlayerSprite(*player);
+                        drawn = true;
+                    }
+                }
+                
+                if (!drawn) {
+                    DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, e.punchProgress);
+                }
+                
                 // Draw health bar above entity
                 if (e.entity) {
                     DrawHealthBar(*e.entity, e.isPlayer);
@@ -547,7 +565,23 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
     // Draw any remaining entities (in case of rounding issues)
     for (; entityIdx < entities.size(); ++entityIdx) {
         const auto& e = entities[entityIdx];
-        DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, e.punchProgress);
+        
+        bool drawn = false;
+        if (e.isPlayer && e.entity) {
+            const Player* player = static_cast<const Player*>(e.entity);
+            if (player->HasSprite()) {
+                // Draw shadow
+                DrawEllipse(static_cast<int>(e.renderX), static_cast<int>(e.renderY + TILE_HEIGHT / 2.0f), 
+                            10.0f, 5.0f, TileColors::Shadow());
+                DrawPlayerSprite(*player);
+                drawn = true;
+            }
+        }
+        
+        if (!drawn) {
+            DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, e.punchProgress);
+        }
+
         if (e.entity) {
             DrawHealthBar(*e.entity, e.isPlayer);
         }

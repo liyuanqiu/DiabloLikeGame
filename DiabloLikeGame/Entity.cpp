@@ -10,6 +10,8 @@ Entity::Entity(int tileX, int tileY)
     , m_maxHealth(100)
     , m_hasBeenDamaged(false)
     , m_isAlive(true)
+    , m_isHit(false)
+    , m_hitTimer(0.0f)
 {
 }
 
@@ -38,8 +40,16 @@ void Entity::TakeDamage(int amount) noexcept
     m_hasBeenDamaged = true;
     m_health = std::max(0, m_health - amount);
     
+    // Trigger hit reaction
+    m_isHit = true;
+    m_hitTimer = 0.0f;
+    
+    // Interrupt punch if hit
+    m_isPunching = false;
+    
     if (m_health <= 0) {
         m_isAlive = false;
+        m_isHit = false; // prioritize death animation
     }
 }
 
@@ -87,3 +97,16 @@ void Entity::UpdatePunch(float deltaTime) noexcept
         m_punchProgress = 0.0f;
     }
 }
+
+void Entity::UpdateHit(float deltaTime) noexcept
+{
+    if (!m_isHit) return;
+    
+    m_hitTimer += deltaTime;
+    
+    if (m_hitTimer >= m_hitDuration) {
+        m_isHit = false;
+        m_hitTimer = 0.0f;
+    }
+}
+

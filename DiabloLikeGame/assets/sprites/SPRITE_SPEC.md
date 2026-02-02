@@ -1,11 +1,11 @@
-﻿# 秦朝游侠角色精灵表规格说明
-# Qin Dynasty Swordsman Character Sprite Sheet Specification
+﻿# 秦朝新手角色精灵表规格说明
+# Qin Dynasty Novice Character Sprite Sheet Specification
 
 ## 角色概念
-- **风格**: 秦朝战国风格游侠/剑客
-- **服装**: 深色长袍，束发，佩剑
-- **配色**: 深灰/黑色为主，铜色/金色点缀
-- **视角**: 等距视角 (Isometric) 或 3/4 俯视角
+- **风格**: 秦朝战国风格素衣新手
+- **服装**: 素衣/黄褐麻布短褐，束发，无武器 (刚出新手村状态)
+- **配色**: 黄褐色/米色为主，麻布质感
+- **视角**: 等距视角 (Isometric)
 
 ## 精灵表格式
 
@@ -61,11 +61,11 @@ SW ↙  |  ↘ SE
 
 ### 角色概念图
 ```
-Qin Dynasty Chinese swordsman character, pixel art style, 
-wearing dark robes with bronze accents, tied hair bun, 
-carrying a jian (Chinese sword), isometric game perspective,
-full body, neutral pose, dark color palette, 
-ancient Chinese warrior aesthetic
+Qin Dynasty Chinese novice villager character, pixel art style, 
+wearing plain yellow-brown coarse linen clothes, tied hair bun, 
+unarmed, no weapon, isometric game perspective,
+full body, neutral pose, earthy color palette, 
+ancient Chinese peasant aesthetic
 ```
 
 ### 精灵表生成 (需要专业工具)
@@ -83,10 +83,10 @@ ancient Chinese warrior aesthetic
 - 帧5: 右脚前，左脚后
 
 ### Attack (攻击)
-- 帧1: 举剑准备
-- 帧2-3: 挥剑动作
-- 帧4-5: 剑光轨迹
-- 帧6: 收剑回位
+- 帧1: 握拳准备
+- 帧2-3: 挥拳动作
+- 帧4-5: 拳风/打击特效
+- 帧6: 收拳回位
 
 ### Hit (受击)
 - 帧1: 受击瞬间，身体后仰
@@ -103,9 +103,9 @@ ancient Chinese warrior aesthetic
 
 ## 颜色建议
 ```
-主色: #2C2C2C (深灰)
-副色: #B87333 (铜色)
-高光: #D4AF37 (金色)
-阴影: #1A1A1A (黑色)
+主色: #C2B280 (米色/麻布)
+副色: #8B4513 (褐色/皮革)
+高光: #E6D2B5 (亮色织物)
+阴影: #3E2723 (深褐阴影)
 皮肤: #E8C39E (肤色)
 ```
