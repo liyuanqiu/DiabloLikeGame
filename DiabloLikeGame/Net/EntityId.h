@@ -30,7 +30,9 @@ struct EntityId {
     explicit EntityId(uint32_t raw) noexcept : value(raw) {}
     
     // Construct from components
+    // Note: owner is limited to 14 bits (max value 16383)
     EntityId(Type type, uint16_t owner, uint16_t instance) noexcept {
+        // Mask owner to 14 bits (max 16383)
         value = (static_cast<uint32_t>(type) << 30) |
                 (static_cast<uint32_t>(owner & 0x3FFF) << 16) |
                 static_cast<uint32_t>(instance);

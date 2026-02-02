@@ -100,9 +100,10 @@ std::unique_ptr<INetworkAuthority> NetworkAuthorityFactory::Create(Mode mode) {
         case Mode::Client:
             // TODO: Implement ClientAuthority
             throw std::runtime_error("Client network authority not yet implemented");
+            
+        default:
+            throw std::runtime_error("Unknown network authority mode");
     }
-    
-    throw std::runtime_error("Unknown network authority mode");
 }
 
 void NetworkAuthorityFactory::SetMode(Mode mode) {
