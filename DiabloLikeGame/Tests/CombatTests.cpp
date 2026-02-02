@@ -102,7 +102,7 @@ namespace CombatTests
             Assert::IsTrue(state.inCombat);
             Assert::IsTrue(state.currentTarget == &player);
             Assert::AreEqual(size_t(1), state.threatList.size());
-            Assert::IsTrue(state.threatList.count(&player) > 0);
+            Assert::IsTrue(state.threatList.contains(&player));
         }
         
         TEST_METHOD(EnemyCombatState_Reset)

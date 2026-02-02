@@ -3,6 +3,8 @@
 #include "Common/Map.h"
 #include "World/Pathfinder.h"
 #include "World/OccupancyMap.h"
+#include "Config/CombatConfig.h"
+#include "Config/UILayoutConfig.h"
 #include <cmath>
 #include <algorithm>
 
@@ -106,6 +108,7 @@ void Enemy::ExitCombat() noexcept
 {
     m_combatState.Reset();
     m_isAggressive = (m_aggressionType == AggressionType::Aggressive);
+    ClearPath();  // Clear cached path when exiting combat
 }
 
 bool Enemy::TryAttackPlayer(Player* player, std::mt19937& rng)
@@ -160,7 +163,8 @@ void Enemy::Update(float deltaTime, const Map& map, OccupancyMap& occupancy,
     // Process punch hit at peak of animation
     if (IsPunching() && !IsPunchHitProcessed() && player && player->IsAlive()) {
         const float progress = GetPunchProgress();
-        if (progress >= 0.4f && progress <= 0.6f) {
+        if (progress >= UILayoutConfig::Combat::kPunchHitWindowStart && 
+            progress <= UILayoutConfig::Combat::kPunchHitWindowEnd) {
             SetPunchHitProcessed(true);
             
             // Check if player is still in front of us
@@ -200,15 +204,18 @@ void Enemy::Update(float deltaTime, const Map& map, OccupancyMap& occupancy,
             m_isMoving = false;
             m_isDiagonalMove = false;
             
-            // Pause after arriving (use configured pause time for wandering)
+            // Pause after arriving - only for wandering, not during combat chase
             if (m_combatState.behavior == CombatBehavior::Wandering) {
                 std::uniform_real_distribution<float> pauseDist(m_pauseTimeMin, m_pauseTimeMax);
                 m_pauseTimer = pauseDist(rng);
-            } else {
-                // Short pause for combat movement
-                std::uniform_real_distribution<float> pauseDist(0.1f, 0.3f);
+            } else if (m_combatState.behavior == CombatBehavior::Returning) {
+                // Short pause when returning to spawn
+                std::uniform_real_distribution<float> pauseDist(
+                    CombatConfig::Enemy::kCombatPauseMin, 
+                    CombatConfig::Enemy::kCombatPauseMax);
                 m_pauseTimer = pauseDist(rng);
             }
+            // No pause for Chasing/Attacking/Fleeing - continuous movement
         } else {
             const float dist = std::sqrt(distSq);
             const float effectiveSpeed = m_moveSpeed * GetCurrentSpeedMultiplier();
@@ -337,55 +344,85 @@ bool Enemy::TryMoveOneStep(const Map& map, OccupancyMap& occupancy, std::mt19937
     return false;  // No valid move found
 }
 
-// Try to move toward a specific target
+// Try to move toward a specific target using A* pathfinding
 bool Enemy::TryMoveToward(int targetX, int targetY, const Map& map, OccupancyMap& occupancy)
 {
     const int currentX = GetTileX();
     const int currentY = GetTileY();
     
-    // Calculate direction to target
-    const int dirX = (targetX > currentX) ? 1 : (targetX < currentX) ? -1 : 0;
-    const int dirY = (targetY > currentY) ? 1 : (targetY < currentY) ? -1 : 0;
-    
-    // Try directions in order of preference
-    // 1. Direct path, 2. X only, 3. Y only, 4. Opposite diagonal
-    int tries[][2] = {
-        {dirX, dirY},
-        {dirX, 0},
-        {0, dirY},
-        {dirX, -dirY},
-        {-dirX, dirY}
-    };
-    
-    for (const auto& t : tries) {
-        if (t[0] == 0 && t[1] == 0) continue;
-        
-        const int newX = currentX + t[0];
-        const int newY = currentY + t[1];
-        
-        if (!Pathfinder::IsTileWalkable(map, newX, newY)) continue;
-        if (occupancy.IsOccupied(newX, newY)) continue;
-        
-        const bool isDiagonal = (t[0] != 0 && t[1] != 0);
-        if (isDiagonal) {
-            if (!Pathfinder::IsTileWalkable(map, currentX + t[0], currentY) ||
-                !Pathfinder::IsTileWalkable(map, currentX, currentY + t[1])) {
-                continue;
-            }
-        }
-        
-        // Valid move
-        m_prevTileX = currentX;
-        m_prevTileY = currentY;
-        SetTilePosition(newX, newY);
-        m_isMoving = true;
-        m_isDiagonalMove = isDiagonal;
-        SetFacing(DirectionUtil::FromDelta(t[0], t[1]));
-        occupancy.Move(currentX, currentY, newX, newY);
-        return true;
+    // If target changed or path is empty, recalculate path
+    if (targetX != m_lastTargetX || targetY != m_lastTargetY || 
+        m_path.empty() || m_pathIndex >= m_path.size()) {
+        m_path = Pathfinder::FindPath(currentX, currentY, targetX, targetY, map, occupancy);
+        m_pathIndex = 0;
+        m_lastTargetX = targetX;
+        m_lastTargetY = targetY;
     }
     
-    return false;
+    // Follow the cached path
+    return FollowPath(map, occupancy);
+}
+
+bool Enemy::FollowPath(const Map& map, OccupancyMap& occupancy)
+{
+    if (m_path.empty() || m_pathIndex >= m_path.size()) {
+        return false;
+    }
+    
+    const int currentX = GetTileX();
+    const int currentY = GetTileY();
+    
+    // Get next waypoint
+    const auto& next = m_path[m_pathIndex];
+    const int nextX = static_cast<int>(next.x);
+    const int nextY = static_cast<int>(next.y);
+    
+    // Check if next tile is walkable
+    if (!Pathfinder::IsTileWalkable(map, nextX, nextY)) {
+        ClearPath();
+        return false;
+    }
+    
+    // Check if occupied - but allow if it's the final destination (target might be there)
+    const bool isFinalStep = (m_pathIndex == m_path.size() - 1);
+    if (!isFinalStep && occupancy.IsOccupied(nextX, nextY)) {
+        // Path blocked by another entity, clear and recalculate next frame
+        ClearPath();
+        return false;
+    }
+    
+    // If final step is occupied, we're close enough - stop here
+    if (isFinalStep && occupancy.IsOccupied(nextX, nextY)) {
+        ClearPath();
+        return false;  // Can't move but we're adjacent to target
+    }
+    
+    // Check diagonal corner cutting
+    const int dx = nextX - currentX;
+    const int dy = nextY - currentY;
+    const bool isDiagonal = (dx != 0 && dy != 0);
+    
+    if (isDiagonal) {
+        if (!Pathfinder::IsTileWalkable(map, currentX + dx, currentY) ||
+            !Pathfinder::IsTileWalkable(map, currentX, currentY + dy)) {
+            ClearPath();
+            return false;
+        }
+    }
+    
+    // Move to next waypoint
+    m_prevTileX = currentX;
+    m_prevTileY = currentY;
+    SetTilePosition(nextX, nextY);
+    m_isMoving = true;
+    m_isDiagonalMove = isDiagonal;
+    SetFacing(DirectionUtil::FromDelta(dx, dy));
+    occupancy.Move(currentX, currentY, nextX, nextY);
+    
+    // Advance path index
+    ++m_pathIndex;
+    
+    return true;
 }
 
 // Try to move away from a threat (for Passive enemies)
@@ -399,34 +436,46 @@ bool Enemy::TryMoveAwayFrom(int threatX, int threatY, const Map& map,
     const int awayX = (currentX > threatX) ? 1 : (currentX < threatX) ? -1 : 0;
     const int awayY = (currentY > threatY) ? 1 : (currentY < threatY) ? -1 : 0;
     
-    // Build list of preferred escape directions (away from threat)
-    std::vector<std::pair<int, int>> directions;
+    // Static array of escape directions (avoid allocation)
+    // Order: direct away, perpendicular variations, then side moves
+    static constexpr int kMaxDirections = 9;
+    int directions[kMaxDirections][2];
+    int dirCount = 0;
     
-    // Direct away
+    // Direct away (highest priority)
     if (awayX != 0 || awayY != 0) {
-        directions.push_back({awayX, awayY});
+        directions[dirCount][0] = awayX;
+        directions[dirCount][1] = awayY;
+        ++dirCount;
     }
-    // Perpendicular options (randomized)
+    // Perpendicular options
     if (awayX != 0) {
-        directions.push_back({awayX, 1});
-        directions.push_back({awayX, -1});
+        directions[dirCount][0] = awayX; directions[dirCount][1] = 1; ++dirCount;
+        directions[dirCount][0] = awayX; directions[dirCount][1] = -1; ++dirCount;
     }
     if (awayY != 0) {
-        directions.push_back({1, awayY});
-        directions.push_back({-1, awayY});
+        directions[dirCount][0] = 1; directions[dirCount][1] = awayY; ++dirCount;
+        directions[dirCount][0] = -1; directions[dirCount][1] = awayY; ++dirCount;
     }
     // Side moves
-    directions.push_back({0, 1});
-    directions.push_back({0, -1});
-    directions.push_back({1, 0});
-    directions.push_back({-1, 0});
+    directions[dirCount][0] = 0; directions[dirCount][1] = 1; ++dirCount;
+    directions[dirCount][0] = 0; directions[dirCount][1] = -1; ++dirCount;
+    directions[dirCount][0] = 1; directions[dirCount][1] = 0; ++dirCount;
+    directions[dirCount][0] = -1; directions[dirCount][1] = 0; ++dirCount;
     
-    // Shuffle a bit for variety
-    if (directions.size() > 2) {
-        std::shuffle(directions.begin() + 1, directions.end(), rng);
+    // Shuffle from index 1 onwards for variety (keep direct away as first choice)
+    if (dirCount > 2) {
+        for (int i = dirCount - 1; i > 1; --i) {
+            std::uniform_int_distribution<int> dist(1, i);
+            const int j = dist(rng);
+            std::swap(directions[i][0], directions[j][0]);
+            std::swap(directions[i][1], directions[j][1]);
+        }
     }
     
-    for (const auto& [dx, dy] : directions) {
+    for (int d = 0; d < dirCount; ++d) {
+        const int dx = directions[d][0];
+        const int dy = directions[d][1];
         if (dx == 0 && dy == 0) continue;
         
         const int newX = currentX + dx;
@@ -609,7 +658,7 @@ void Enemy::UpdateReturningBehavior(float deltaTime, const Map& map, OccupancyMa
     // Move toward spawn
     if (!TryMoveTowardSpawn(map, occupancy)) {
         // Blocked, wait a bit
-        m_pauseTimer = 0.5f;
+        m_pauseTimer = CombatConfig::Enemy::kStuckPauseTime;
     }
 }
 

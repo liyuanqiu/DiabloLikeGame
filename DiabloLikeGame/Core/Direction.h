@@ -81,4 +81,36 @@ namespace DirectionUtil {
         const auto d = static_cast<uint8_t>(dir);
         return d < 8 ? names[d] : "Invalid";
     }
+    
+    // Convert screen-aligned input direction to isometric grid direction
+    // Screen coordinates: X = right, Y = down
+    // Isometric mapping:
+    //   Screen Up    (-Y) ¡ú Grid NW (-1,-1)
+    //   Screen Down  (+Y) ¡ú Grid SE (+1,+1)
+    //   Screen Left  (-X) ¡ú Grid SW (-1,+1)
+    //   Screen Right (+X) ¡ú Grid NE (+1,-1)
+    //   Screen Up-Left    ¡ú Grid W  (-1, 0)
+    //   Screen Up-Right   ¡ú Grid N  ( 0,-1)
+    //   Screen Down-Left  ¡ú Grid S  ( 0,+1)
+    //   Screen Down-Right ¡ú Grid E  (+1, 0)
+    struct GridDelta {
+        int dx;
+        int dy;
+    };
+    
+    [[nodiscard]] constexpr GridDelta ScreenToGridDelta(int screenX, int screenY) noexcept {
+        // screenX: -1 = left, 0 = none, +1 = right
+        // screenY: -1 = up, 0 = none, +1 = down
+        
+        if (screenX == 0 && screenY < 0) return {-1, -1};      // Up ¡ú NW
+        if (screenX == 0 && screenY > 0) return {1, 1};        // Down ¡ú SE
+        if (screenX < 0 && screenY == 0) return {-1, 1};       // Left ¡ú SW
+        if (screenX > 0 && screenY == 0) return {1, -1};       // Right ¡ú NE
+        if (screenX < 0 && screenY < 0) return {-1, 0};        // Up-Left ¡ú W
+        if (screenX > 0 && screenY < 0) return {0, -1};        // Up-Right ¡ú N
+        if (screenX < 0 && screenY > 0) return {0, 1};         // Down-Left ¡ú S
+        if (screenX > 0 && screenY > 0) return {1, 0};         // Down-Right ¡ú E
+        
+        return {0, 0};  // No movement
+    }
 }

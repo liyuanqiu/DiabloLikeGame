@@ -3,8 +3,10 @@
 #include "Entity.h"
 #include "Config/EntityConfig.h"
 #include "Combat/CombatState.h"
+#include "raylib.h"
 #include <random>
 #include <string>
+#include <vector>
 
 // Forward declarations
 class Map;
@@ -79,7 +81,7 @@ void UpdateWanderingBehavior(float deltaTime, const Map& map, OccupancyMap& occu
 // Try to move one step in a random direction (for wandering)
 bool TryMoveOneStep(const Map& map, OccupancyMap& occupancy, std::mt19937& rng);
     
-// Try to move toward a target position
+// Try to move toward a target position (uses A* pathfinding)
 bool TryMoveToward(int targetX, int targetY, const Map& map, OccupancyMap& occupancy);
     
 // Try to move away from a target position (for fleeing)
@@ -88,6 +90,12 @@ bool TryMoveAwayFrom(int targetX, int targetY, const Map& map, OccupancyMap& occ
     
 // Try to move toward spawn point (for returning)
 bool TryMoveTowardSpawn(const Map& map, OccupancyMap& occupancy);
+
+// Follow cached path (returns false if path is empty or blocked)
+bool FollowPath(const Map& map, OccupancyMap& occupancy);
+
+// Clear the cached path
+void ClearPath() noexcept { m_path.clear(); m_pathIndex = 0; }
     
     // Get speed multiplier for diagonal vs orthogonal movement
     [[nodiscard]] float GetCurrentSpeedMultiplier() const noexcept;
@@ -120,6 +128,12 @@ bool TryMoveTowardSpawn(const Map& map, OccupancyMap& occupancy);
     
     // Movement speed (tiles per second)
     float m_moveSpeed{3.0f};
+    
+    // Pathfinding cache
+    std::vector<Vector2> m_path;
+    size_t m_pathIndex{0};
+    int m_lastTargetX{-1};
+    int m_lastTargetY{-1};
     
     // Combat stats
     float m_baseAttack{10.0f};

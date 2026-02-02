@@ -1,4 +1,5 @@
 #include "ConfigManager.h"
+#include "../Core/IniParser.h"
 #include "../Net/IGameDataClient.h"
 #include "../Net/GameDataClientFactory.h"
 #include "../Net/Json.h"
@@ -32,12 +33,25 @@ bool ConfigManager::Initialize(IGameDataClient* client)
 
 bool ConfigManager::LoadAll(std::string_view configDir)
 {
+    // Load game.ini settings first
+    LoadGameSettings(configDir);
+    
     // Set up local client with specified directory
     GameDataClientFactory::SetClientType(
         GameDataClientFactory::ClientType::Local, 
         std::string(configDir)
     );
     return Initialize();
+}
+
+void ConfigManager::LoadGameSettings(std::string_view configDir)
+{
+    const std::string iniPath = std::string(configDir) + "/game.ini";
+    IniParser ini;
+    if (ini.Load(iniPath.c_str())) {
+        m_enemySpawnRate = ini.GetFloat("Enemy", "SpawnRate", m_enemySpawnRate);
+        m_defaultMapPath = ini.GetString("Paths", "DefaultMap", m_defaultMapPath);
+    }
 }
 
 bool ConfigManager::ParsePlayerConfig(const std::string& json)

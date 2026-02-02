@@ -7,6 +7,12 @@
 #include "../World/Pathfinder.h"
 #include "../World/MapGenerator.h"
 #include "../Config/ConfigManager.h"
+#include "../Config/MapGeneratorConfig.h"
+#include "../Config/MapConfig.h"
+#include "../Config/RenderConfig.h"
+#include "../Config/UIConfig.h"
+#include "../Config/UILayoutConfig.h"
+#include "../Config/CombatConfig.h"
 #include "../Animation/PlaceholderSprite.h"
 #include <cmath>
 #include <algorithm>
@@ -26,6 +32,8 @@ bool Game::Init()
     
     // Load configuration files
     ConfigManager::Instance().LoadAll("config");
+    MapGeneratorConfig::Load("config/mapgen.ini");
+    GameplayDefaults::Instance().Load("config/gameplay/defaults.ini");
     const auto& playerConfig = ConfigManager::Instance().GetPlayerConfig();
     
     // Initialize input system
@@ -34,16 +42,14 @@ bool Game::Init()
     InputManager::Instance().AddDevice(std::make_unique<ControllerInput>(0));
     
     // Load default map from file
-    if (!m_map.LoadFromFile("maps/default.map")) {
-        // Fallback: generate random map if default map not found
-        MapGenerator::Config mapConfig;
-        mapConfig.width = 40;
-        mapConfig.height = 40;
-        mapConfig.wallDensity = 0.45f;
-        mapConfig.smoothIterations = 5;
-        mapConfig.waterChance = 0.01f;
-        m_map = MapGenerator::Generate(mapConfig);
+    const std::string mapPath = "maps/default.map";
+    if (!m_map.LoadFromFile(mapPath)) {
+        // Fallback: generate random map using config from mapgen.ini
+        m_map = MapGenerator::Generate(MapGeneratorConfig::GetPreset("Default"));
     }
+    
+    // Load map-specific configuration (with global defaults as fallback)
+    m_mapConfig = MapConfigLoader::Load(mapPath);
     
     // Initialize camera
     m_camera.Init(Config::SCREEN_WIDTH, Config::SCREEN_HEIGHT);
@@ -86,8 +92,8 @@ bool Game::Init()
     // Center camera on player at start
     m_camera.CenterOn(static_cast<float>(spawnX), static_cast<float>(spawnY));
     
-    // Spawn enemies on 10% of floor tiles
-    SpawnEnemies(Config::ENEMY_SPAWN_RATE);
+    // Spawn enemies using map-specific config (with difficulty multiplier applied)
+    SpawnEnemies(m_mapConfig.GetEffectiveSpawnRate());
     
     // Initialize occupancy map with all entity positions
     InitOccupancyMap();
@@ -122,7 +128,7 @@ void Game::SpawnEnemies(float spawnRate)
     // Get player position to avoid spawning on player
     const int playerX = m_player.GetTileX();
     const int playerY = m_player.GetTileY();
-    constexpr int safeRadius = 5;
+    constexpr int safeRadius = CombatConfig::Spawn::kSafeRadiusFromPlayer;
     
     // Reserve estimated space
     const size_t estimatedEnemies = static_cast<size_t>(
@@ -210,6 +216,18 @@ void Game::ProcessInput(float deltaTime)
     }
 }
 
+void Game::TryMoveWithFallback(int dx, int dy)
+{
+    if (!m_player.MoveInDirection(dx, dy, m_map, m_occupancy)) {
+        // If blocked and was diagonal, try single directions as fallback
+        if (dx != 0 && dy != 0) {
+            if (!m_player.MoveInDirection(dx, 0, m_map, m_occupancy)) {
+                m_player.MoveInDirection(0, dy, m_map, m_occupancy);
+            }
+        }
+    }
+}
+
 void Game::HandleCameraInput(InputManager& input, float /*deltaTime*/)
 {
     // Arrow keys pan camera (always available)
@@ -237,7 +255,6 @@ void Game::HandleKeyboardInput(InputManager& /*input*/)
     if (m_player.IsMoving()) return;
     
     // Calculate input direction from WASD
-    // W = visual up, S = visual down, A = visual left, D = visual right
     int inputX = 0;  // -1 = left, +1 = right
     int inputY = 0;  // -1 = up, +1 = down
     
@@ -246,59 +263,15 @@ void Game::HandleKeyboardInput(InputManager& /*input*/)
     if (IsKeyDown(KEY_A)) inputX -= 1;
     if (IsKeyDown(KEY_D)) inputX += 1;
     
-    // No input or cancelled out (W+S or A+D)
+    // No input or cancelled out
     if (inputX == 0 && inputY == 0) return;
     
-    // Convert screen direction to grid direction (isometric mapping)
-    // Screen-aligned isometric:
-    //   Screen Up    (-Y) ¡ú Grid NW (-1,-1)
-    //   Screen Down  (+Y) ¡ú Grid SE (+1,+1)
-    //   Screen Left  (-X) ¡ú Grid SW (-1,+1)
-    //   Screen Right (+X) ¡ú Grid NE (+1,-1)
-    //   Screen Up-Left    ¡ú Grid W  (-1, 0)
-    //   Screen Up-Right   ¡ú Grid N  ( 0,-1)
-    //   Screen Down-Left  ¡ú Grid S  ( 0,+1)
-    //   Screen Down-Right ¡ú Grid E  (+1, 0)
+    // Convert screen direction to grid direction using DirectionUtil
+    const auto [dx, dy] = DirectionUtil::ScreenToGridDelta(inputX, inputY);
     
-    
-    int dx = 0, dy = 0;
-    
-    if (inputX == 0 && inputY < 0) {
-        // Up ¡ú NW
-        dx = -1; dy = -1;
-    } else if (inputX == 0 && inputY > 0) {
-        // Down ¡ú SE
-        dx = 1; dy = 1;
-    } else if (inputX < 0 && inputY == 0) {
-        // Left ¡ú SW
-        dx = -1; dy = 1;
-    } else if (inputX > 0 && inputY == 0) {
-        // Right ¡ú NE
-        dx = 1; dy = -1;
-    } else if (inputX < 0 && inputY < 0) {
-        // Up-Left ¡ú W
-        dx = -1; dy = 0;
-    } else if (inputX > 0 && inputY < 0) {
-        // Up-Right ¡ú N
-        dx = 0; dy = -1;
-    } else if (inputX < 0 && inputY > 0) {
-        // Down-Left ¡ú S
-        dx = 0; dy = 1;
-    } else if (inputX > 0 && inputY > 0) {
-        // Down-Right ¡ú E
-        dx = 1; dy = 0;
-    }
-    
-    // Try to move
+    // Try to move with fallback
     if (dx != 0 || dy != 0) {
-        if (!m_player.MoveInDirection(dx, dy, m_map, m_occupancy)) {
-            // If blocked, try single directions as fallback
-            if (dx != 0 && dy != 0) {
-                if (!m_player.MoveInDirection(dx, 0, m_map, m_occupancy)) {
-                    m_player.MoveInDirection(0, dy, m_map, m_occupancy);
-                }
-            }
-        }
+        TryMoveWithFallback(dx, dy);
     }
     
     // Space key to punch
@@ -365,116 +338,86 @@ void Game::HandleControllerInput(InputManager& input, float /*deltaTime*/)
         int dx = 0, dy = 0;
         
         if (leftStick.IsActive()) {
-            constexpr float kCardinalThreshold = 0.7f;
-            constexpr float kDiagonalThreshold = 0.4f;
-            
             const float absX = std::abs(leftStick.x);
             const float absY = std::abs(leftStick.y);
             
-            const bool strongX = absX > kDiagonalThreshold;
-            const bool strongY = absY > kDiagonalThreshold;
+            const bool strongX = absX > UIConfig::Controller::kDiagonalThreshold;
+            const bool strongY = absY > UIConfig::Controller::kDiagonalThreshold;
             const bool isDiagonal = strongX && strongY;
             
             if (isDiagonal) {
-                if (leftStick.x < 0 && leftStick.y < 0) {
-                    dx = -1; dy = 0;   // Up-Left ¡ú W
-                } else if (leftStick.x > 0 && leftStick.y < 0) {
-                    dx = 0; dy = -1;   // Up-Right ¡ú N
-                } else if (leftStick.x < 0 && leftStick.y > 0) {
-                    dx = 0; dy = 1;    // Down-Left ¡ú S
-                } else {
-                    dx = 1; dy = 0;    // Down-Right ¡ú E
-                }
-            } else if (absX > kCardinalThreshold || absY > kCardinalThreshold) {
+                // Convert diagonal stick to grid direction
+                const int screenX = (leftStick.x < 0) ? -1 : 1;
+                const int screenY = (leftStick.y < 0) ? -1 : 1;
+                const auto delta = DirectionUtil::ScreenToGridDelta(screenX, screenY);
+                dx = delta.dx;
+                dy = delta.dy;
+            } else if (absX > UIConfig::Controller::kCardinalThreshold || 
+                       absY > UIConfig::Controller::kCardinalThreshold) {
+                // Cardinal direction
+                int screenX = 0, screenY = 0;
                 if (absY > absX) {
-                    if (leftStick.y < 0) {
-                        dx = -1; dy = -1;  // Up ¡ú NW
-                    } else {
-                        dx = 1; dy = 1;    // Down ¡ú SE
-                    }
+                    screenY = (leftStick.y < 0) ? -1 : 1;
                 } else {
-                    if (leftStick.x < 0) {
-                        dx = -1; dy = 1;   // Left ¡ú SW
-                    } else {
-                        dx = 1; dy = -1;   // Right ¡ú NE
-                    }
+                    screenX = (leftStick.x < 0) ? -1 : 1;
                 }
+                const auto delta = DirectionUtil::ScreenToGridDelta(screenX, screenY);
+                dx = delta.dx;
+                dy = delta.dy;
             }
         }
         
         // D-pad fallback
         if (dx == 0 && dy == 0) {
             const int gamepadId = controller->GetGamepadId();
-            if (IsGamepadButtonDown(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
-                dx = -1; dy = -1;
-            } else if (IsGamepadButtonDown(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
-                dx = 1; dy = 1;
-            } else if (IsGamepadButtonDown(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
-                dx = -1; dy = 1;
-            } else if (IsGamepadButtonDown(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
-                dx = 1; dy = -1;
+            int screenX = 0, screenY = 0;
+            if (IsGamepadButtonDown(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_UP)) screenY = -1;
+            else if (IsGamepadButtonDown(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) screenY = 1;
+            else if (IsGamepadButtonDown(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) screenX = -1;
+            else if (IsGamepadButtonDown(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) screenX = 1;
+            
+            if (screenX != 0 || screenY != 0) {
+                const auto delta = DirectionUtil::ScreenToGridDelta(screenX, screenY);
+                dx = delta.dx;
+                dy = delta.dy;
             }
         }
         
-        // Try to move
+        // Try to move with fallback
         if (dx != 0 || dy != 0) {
-            if (!m_player.MoveInDirection(dx, dy, m_map, m_occupancy)) {
-                if (dx != 0 && dy != 0) {
-                    if (!m_player.MoveInDirection(dx, 0, m_map, m_occupancy)) {
-                        m_player.MoveInDirection(0, dy, m_map, m_occupancy);
-                    }
-                }
-            }
+            TryMoveWithFallback(dx, dy);
         }
     }
     
     // Right stick to turn in place (for aiming)
     const auto rightStick = controller->GetRightStick();
     if (rightStick.IsActive()) {
-        constexpr float kAimThreshold = 0.5f;
         const float absX = std::abs(rightStick.x);
         const float absY = std::abs(rightStick.y);
         
-        if (absX > kAimThreshold || absY > kAimThreshold) {
-            int aimDx = 0, aimDy = 0;
+        if (absX > UIConfig::Controller::kAimThreshold || 
+            absY > UIConfig::Controller::kAimThreshold) {
+            int screenX = 0, screenY = 0;
             
-            // Convert stick direction to grid direction (same mapping as left stick)
-            if (absY > absX * 1.5f) {
-                // Primarily vertical
-                if (rightStick.y < 0) {
-                    aimDx = -1; aimDy = -1;  // Up ¡ú NW
-                } else {
-                    aimDx = 1; aimDy = 1;    // Down ¡ú SE
-                }
-            } else if (absX > absY * 1.5f) {
-                // Primarily horizontal
-                if (rightStick.x < 0) {
-                    aimDx = -1; aimDy = 1;   // Left ¡ú SW
-                } else {
-                    aimDx = 1; aimDy = -1;   // Right ¡ú NE
-                }
+            if (absY > absX * UIConfig::Controller::kDirectionRatio) {
+                screenY = (rightStick.y < 0) ? -1 : 1;
+            } else if (absX > absY * UIConfig::Controller::kDirectionRatio) {
+                screenX = (rightStick.x < 0) ? -1 : 1;
             } else {
-                // Diagonal
-                if (rightStick.x < 0 && rightStick.y < 0) {
-                    aimDx = -1; aimDy = 0;   // Up-Left ¡ú W
-                } else if (rightStick.x > 0 && rightStick.y < 0) {
-                    aimDx = 0; aimDy = -1;   // Up-Right ¡ú N
-                } else if (rightStick.x < 0 && rightStick.y > 0) {
-                    aimDx = 0; aimDy = 1;    // Down-Left ¡ú S
-                } else {
-                    aimDx = 1; aimDy = 0;    // Down-Right ¡ú E
-                }
+                screenX = (rightStick.x < 0) ? -1 : 1;
+                screenY = (rightStick.y < 0) ? -1 : 1;
             }
             
-            if (aimDx != 0 || aimDy != 0) {
-                m_player.SetFacing(DirectionUtil::FromDelta(aimDx, aimDy));
+            const auto delta = DirectionUtil::ScreenToGridDelta(screenX, screenY);
+            if (delta.dx != 0 || delta.dy != 0) {
+                m_player.SetFacing(DirectionUtil::FromDelta(delta.dx, delta.dy));
             }
         }
     }
     
     // Right trigger or X button to punch
     const int gamepadId = controller->GetGamepadId();
-    if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT) ||  // X button
+    if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT) ||
         GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_RIGHT_TRIGGER) > 0.5f) {
         m_player.TryPunch();
     }
@@ -511,12 +454,11 @@ void Game::Update(float deltaTime)
 void Game::Render()
 {
     BeginDrawing();
-    ClearBackground(Color{30, 30, 40, 255});
+    ClearBackground(RenderConfig::Scene::kBackground);
     
-    // Draw scene with proper depth sorting (player and enemies can be occluded by walls)
-    static constexpr Color playerColor = {194, 178, 128, 255};  // Ecru/Beige for novice player (ËØÒÂ)
-    static constexpr Color enemyColor = {230, 41, 55, 255};      // Red for enemies
-    m_renderer.DrawScene(m_map, m_player, playerColor, m_enemies, enemyColor);
+    // Draw scene with proper depth sorting
+    m_renderer.DrawScene(m_map, m_player, RenderConfig::Scene::kPlayerDefault, 
+                         m_enemies, RenderConfig::Scene::kEnemyDefault);
     
     RenderUI();
     
@@ -525,44 +467,49 @@ void Game::Render()
 
 void Game::RenderUI()
 {
+    using namespace UILayoutConfig::DebugInfo;
+    
     // Input mode selector (top-right corner)
     RenderInputModeSelector();
     
     // Map info
     DrawText(TextFormat("Map: %s (%dx%d)", m_map.GetName().c_str(),
-        m_map.GetWidth(), m_map.GetHeight()), 10, 10, 20, WHITE);
+        m_map.GetWidth(), m_map.GetHeight()), kMarginLeft, kStartY, kTitleFontSize, WHITE);
     
     // Player info  
+    int infoY = kStartY + kLineSpacing + 5;
     DrawText(TextFormat("Player: (%d, %d) HP: %d/%d", 
         m_player.GetTileX(), m_player.GetTileY(),
         m_player.GetHealth(), m_player.GetMaxHealth()),
-        10, 35, 16, SKYBLUE);
-    DrawText(m_player.IsMoving() ? "Moving" : "Idle", 10, 55, 16,
+        kMarginLeft, infoY, kInfoFontSize, SKYBLUE);
+    infoY += kSubLineSpacing + 4;
+    DrawText(m_player.IsMoving() ? "Moving" : "Idle", kMarginLeft, infoY, kInfoFontSize,
         m_player.IsMoving() ? GREEN : GRAY);
     
     // Enemy count
-    DrawText(TextFormat("Enemies: %d", static_cast<int>(m_enemies.size())), 10, 75, 16, RED);
+    infoY += kLineSpacing;
+    DrawText(TextFormat("Enemies: %d", static_cast<int>(m_enemies.size())), kMarginLeft, infoY, kInfoFontSize, RED);
     
     // Show input-specific info
-    int infoY = 95;
+    infoY += kLineSpacing;
     if (m_inputMode == InputMode::Controller) {
         auto* controller = InputManager::Instance().GetDevice<ControllerInput>();
         if (controller && controller->IsConnected()) {
             const auto leftStick = controller->GetLeftStick();
             DrawText(TextFormat("Stick: X=%+.2f Y=%+.2f", leftStick.x, leftStick.y), 
-                10, infoY, 12, leftStick.IsActive() ? LIME : GRAY);
+                kMarginLeft, infoY, kTinyFontSize, leftStick.IsActive() ? LIME : GRAY);
         } else {
-            DrawText("Controller: Not connected!", 10, infoY, 12, RED);
+            DrawText("Controller: Not connected!", kMarginLeft, infoY, kTinyFontSize, RED);
         }
     } else if (m_inputMode == InputMode::Keyboard) {
-        DrawText("WASD: Move player", 10, infoY, 12, LIGHTGRAY);
+        DrawText("WASD: Move player", kMarginLeft, infoY, kTinyFontSize, LIGHTGRAY);
     } else if (m_inputMode == InputMode::Mouse) {
-        DrawText("Click: Move to tile", 10, infoY, 12, LIGHTGRAY);
+        DrawText("Click: Move to tile", kMarginLeft, infoY, kTinyFontSize, LIGHTGRAY);
     }
-    infoY += 16;
+    infoY += kSubLineSpacing;
     
-    DrawText("Arrow Keys / Right Stick: Pan camera", 10, infoY, 12, GRAY);
-    infoY += 18;
+    DrawText("Arrow Keys / Right Stick: Pan camera", kMarginLeft, infoY, kTinyFontSize, GRAY);
+    infoY += kSubLineSpacing + 2;
     
     // Mouse tile info
     const Vector2 mousePos = GetMousePosition();
@@ -576,27 +523,22 @@ void Game::RenderUI()
     
     DrawText(TextFormat("Tile: (%d, %d) %s", hoverX, hoverY,
         walkable ? "[OK]" : "[Blocked]"),
-        10, infoY, 14, walkable ? GREEN : RED);
+        kMarginLeft, infoY, kSmallFontSize, walkable ? GREEN : RED);
     
-    DrawFPS(10, Config::SCREEN_HEIGHT - 25);
+    DrawFPS(kMarginLeft, Config::SCREEN_HEIGHT - UILayoutConfig::FPS::kOffsetFromBottom);
 }
 
 void Game::RenderInputModeSelector()
 {
-    // Dropdown position and size
-    constexpr int dropX = Config::SCREEN_WIDTH - 200;
-    constexpr int dropY = 10;
-    constexpr int dropW = 180;
-    constexpr int dropH = 30;
-    constexpr int itemH = 28;
+    // Dropdown position and size using UIConfig
+    const int dropX = Config::SCREEN_WIDTH - UIConfig::Dropdown::kMarginRight;
+    constexpr int dropY = UIConfig::Dropdown::kMarginTop;
+    constexpr int dropW = UIConfig::Dropdown::kWidth;
+    constexpr int dropH = UIConfig::Dropdown::kHeight;
+    constexpr int itemH = UIConfig::Dropdown::kItemHeight;
     
-    // Mode names (static to avoid recreation each frame)
+    // Mode names
     static constexpr const char* modeNames[] = { "Keyboard", "Mouse", "Controller" };
-    static constexpr Color headerNormal = {50, 50, 70, 255};
-    static constexpr Color headerHover = {70, 70, 90, 255};
-    static constexpr Color itemNormal = {40, 40, 60, 255};
-    static constexpr Color itemHover = {60, 60, 100, 255};
-    static constexpr Color itemSelected = {80, 80, 120, 255};
     
     const int currentIndex = static_cast<int>(m_inputMode);
     
@@ -609,7 +551,8 @@ void Game::RenderInputModeSelector()
     const bool mouseInHeader = CheckCollisionPointRec(mousePos, headerRect);
     
     // Draw header
-    DrawRectangle(dropX, dropY, dropW, dropH, mouseInHeader ? headerHover : headerNormal);
+    const Color headerColor = mouseInHeader ? UIConfig::Dropdown::kHeaderHover : UIConfig::Dropdown::kHeaderNormal;
+    DrawRectangle(dropX, dropY, dropW, dropH, headerColor);
     DrawRectangleLines(dropX, dropY, dropW, dropH, LIGHTGRAY);
     DrawText("Input Mode:", dropX + 5, dropY + 4, 12, GRAY);
     DrawText(modeNames[currentIndex], dropX + 5, dropY + 16, 14, WHITE);
@@ -640,10 +583,10 @@ void Game::RenderInputModeSelector()
             const bool mouseInItem = CheckCollisionPointRec(mousePos, itemRect);
             const bool isSelected = (i == currentIndex);
             
-            // Draw item background
-            Color bgColor = itemNormal;
-            if (isSelected) bgColor = itemSelected;
-            else if (mouseInItem) bgColor = itemHover;
+            // Draw item background using UIConfig colors
+            Color bgColor = UIConfig::Dropdown::kItemNormal;
+            if (isSelected) bgColor = UIConfig::Dropdown::kItemSelected;
+            else if (mouseInItem) bgColor = UIConfig::Dropdown::kItemHover;
             
             DrawRectangle(dropX, itemY, dropW, itemH, bgColor);
             DrawRectangleLines(dropX, itemY, dropW, itemH, DARKGRAY);
@@ -655,7 +598,10 @@ void Game::RenderInputModeSelector()
             if (i == 2) {
                 auto* controller = InputManager::Instance().GetDevice<ControllerInput>();
                 const bool connected = controller && controller->IsConnected();
-                DrawCircle(dropX + dropW - 15, itemY + itemH / 2, 5, connected ? GREEN : RED);
+                DrawCircle(dropX + dropW - UIConfig::StatusIndicator::kOffsetFromRight, 
+                           itemY + itemH / 2, 
+                           UIConfig::StatusIndicator::kRadius, 
+                           connected ? GREEN : RED);
             }
             
             // Handle item click

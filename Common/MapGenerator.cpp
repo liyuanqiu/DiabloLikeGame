@@ -74,7 +74,7 @@ void MapGenerator::SmoothMap(const std::vector<TileType>& tiles, std::vector<Til
             } else if (wallCount < threshold) {
                 output[idx] = TileType::Floor;
             } else {
-                output[idx] = tiles[idx];
+                output[idx] = tiles[idx];  // Keep current state
             }
         }
     }
@@ -103,7 +103,7 @@ int MapGenerator::CountWallNeighbors(const std::vector<TileType>& tiles,
             const int ny = y + dy;
             
             if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
-                count++;
+                count++;  // Out of bounds counts as wall
             } else {
                 const size_t idx = static_cast<size_t>(ny * width + nx);
                 if (tiles[idx] == TileType::Wall) {
@@ -126,11 +126,14 @@ void MapGenerator::AddWaterPools(std::vector<TileType>& tiles, int width, int he
         for (int x = 5; x < width - 5; ++x) {
             const size_t idx = static_cast<size_t>(y * width + x);
             
+            // Only place water on floor tiles with low probability
             if (tiles[idx] == TileType::Floor && dist(rng) < chance) {
                 const int poolSize = sizeDist(rng);
                 
+                // Create a small water pool
                 for (int dy = -poolSize/2; dy <= poolSize/2; ++dy) {
                     for (int dx = -poolSize/2; dx <= poolSize/2; ++dx) {
+                        // Circular-ish shape
                         if (dx*dx + dy*dy <= (poolSize/2 + 1) * (poolSize/2 + 1)) {
                             const size_t pidx = static_cast<size_t>((y + dy) * width + (x + dx));
                             if (tiles[pidx] == TileType::Floor) {

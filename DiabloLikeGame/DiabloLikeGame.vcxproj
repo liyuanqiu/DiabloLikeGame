@@ -133,8 +133,9 @@
     <ClCompile Include="Camera\Camera.cpp" />
     <ClCompile Include="Combat\CombatState.cpp" />
     <ClCompile Include="Config\ConfigManager.cpp" />
+    <ClCompile Include="Config\MapConfig.cpp" />
+    <ClCompile Include="Config\MapGeneratorConfig.cpp" />
     <ClCompile Include="Core\Game.cpp" />
-    <ClCompile Include="Core\GameConfig.cpp" />
     <ClCompile Include="Core\IniParser.cpp" />
     <ClCompile Include="Core\TileConstants.cpp" />
     <ClCompile Include="DiabloLikeGame.cpp" />
@@ -149,7 +150,6 @@
     <ClCompile Include="Net\GameDataLocalClient.cpp" />
     <ClCompile Include="Net\Json.cpp" />
     <ClCompile Include="Player.cpp" />
-    <ClCompile Include="World\MapGenerator.cpp" />
     <ClCompile Include="World\Pathfinder.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -157,8 +157,14 @@
     <ClInclude Include="Animation\PlaceholderSprite.h" />
     <ClInclude Include="Camera\Camera.h" />
     <ClInclude Include="Combat\CombatState.h" />
+    <ClInclude Include="Config\CombatConfig.h" />
     <ClInclude Include="Config\ConfigManager.h" />
     <ClInclude Include="Config\EntityConfig.h" />
+    <ClInclude Include="Config\MapConfig.h" />
+    <ClInclude Include="Config\MapGeneratorConfig.h" />
+    <ClInclude Include="Config\RenderConfig.h" />
+    <ClInclude Include="Config\UIConfig.h" />
+    <ClInclude Include="Config\UILayoutConfig.h" />
     <ClInclude Include="Core\Direction.h" />
     <ClInclude Include="Core\Game.h" />
     <ClInclude Include="Core\GameConfig.h" />
@@ -186,11 +192,16 @@
     <None Include="config\enemies\goblin.ini" />
     <None Include="config\enemies\skeleton.ini" />
     <None Include="config\enemies\slime.ini" />
+    <None Include="Config\engine.ini" />
     <None Include="config\game.ini" />
+    <None Include="Config\gameplay\defaults.ini" />
     <None Include="config\mapgen.ini" />
     <None Include="config\player.ini" />
     <None Include="config\tiles.ini" />
+    <None Include="maps\default.ini" />
     <None Include="maps\default.map" />
+    <None Include="World\Pathfinder.cpp.new" />
+    <None Include="World\Pathfinder.h.new" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">

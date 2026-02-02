@@ -1,37 +1,6 @@
 #pragma once
 
-#include "Common/Map.h"
-#include <random>
+// Re-export MapGenerator from Common library
+// This header provides backwards compatibility for existing code
+#include "Common/MapGenerator.h"
 
-// Random dungeon map generator
-class MapGenerator {
-public:
-    struct Config {
-        int width = 200;
-        int height = 200;
-        float wallDensity = 0.45f;      // Initial random wall density
-        int smoothIterations = 5;        // Cellular automata iterations
-        int wallThreshold = 4;           // Neighbors needed to become wall
-        float waterChance = 0.02f;       // Chance of water pools
-        unsigned int seed = 0;           // 0 = random seed
-    };
-    
-    // Generate a random cave-like dungeon
-    [[nodiscard]] static Map Generate(const Config& config = {});
-    
-    // Generate with specific seed (for reproducibility)
-    [[nodiscard]] static Map Generate(int width, int height, unsigned int seed);
-
-private:
-// Cellular automata smoothing pass (double-buffered)
-static void SmoothMap(const std::vector<TileType>& tiles, std::vector<TileType>& output,
-                      int width, int height, int threshold);
-    
-    // Count neighboring walls
-    [[nodiscard]] static int CountWallNeighbors(const std::vector<TileType>& tiles, 
-                                                 int width, int height, int x, int y);
-    
-    // Add water pools
-    static void AddWaterPools(std::vector<TileType>& tiles, int width, int height, 
-                              float chance, std::mt19937& rng);
-};

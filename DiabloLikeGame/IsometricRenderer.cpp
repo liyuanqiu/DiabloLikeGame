@@ -4,14 +4,14 @@
 #include "Entity.h"
 #include "Camera/Camera.h"
 #include "Core/TileConstants.h"
+#include "Config/RenderConfig.h"
 #include <cassert>
 #include <cmath>
 #include <algorithm>
 #include <vector>
 
 using namespace TileConstants;
-
-// Now using TileColors class from TileConstants.h
+using namespace RenderConfig;
 
 Vector2 IsometricRenderer::TileToScreen(float tileX, float tileY) const noexcept
 {
@@ -32,17 +32,9 @@ void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color, bool
     
     // Apply shake and color tint if hit
     if (isHit) {
-        const int shakeAmount = 2;
-        pos.x += static_cast<float>(GetRandomValue(-shakeAmount, shakeAmount));
-        
-        // Reddish tint for hit feedback
-        color = {255, 120, 120, 255};
+        pos.x += static_cast<float>(GetRandomValue(-HitEffect::kShakeAmount, HitEffect::kShakeAmount));
+        color = HitEffect::kTintColor;
     }
-    
-    // Entity dimensions
-    constexpr float bodyHeight = 16.0f;
-    constexpr float bodyWidth = 14.0f;
-    constexpr float headRadius = 6.0f;
     
     // Calculate center position (standing on tile)
     const float baseY = pos.y + TILE_HEIGHT / 2.0f;  // Bottom of entity (on ground)
@@ -53,7 +45,7 @@ void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color, bool
     
     // Draw shadow
     DrawEllipse(static_cast<int>(centerX), static_cast<int>(baseY), 
-                10.0f, 5.0f, TileColors::Shadow());
+                Character::kShadowRadiusX, Character::kShadowRadiusY, TileColors::Shadow());
     
     // Calculate body outline color
     const Color outlineColor = { 
@@ -63,7 +55,7 @@ void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color, bool
         255 
     };
     
-    // Calculate lighter color for head/face and hands
+    // Calculate lighter color for head/face
     const Color lightColor = {
         static_cast<unsigned char>(std::min(255, color.r + 40)),
         static_cast<unsigned char>(std::min(255, color.g + 40)),
@@ -71,15 +63,11 @@ void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color, bool
         255
     };
     
-    // Skin color for hands
-    const Color skinColor = {255, 220, 185, 255};
-    const Color skinOutline = {180, 150, 120, 255};
-    
     // Body - trapezoid shape (wider at bottom like a robe/cloak)
-    const float bodyTop = baseY - bodyHeight - headRadius * 2.0f;
+    const float bodyTop = baseY - Character::kBodyHeight - Character::kHeadRadius * 2.0f;
     const float bodyBottom = baseY - 2.0f;
-    const float topWidth = bodyWidth * 0.6f;
-    const float bottomWidth = bodyWidth;
+    const float topWidth = Character::kBodyWidth * Character::kTopWidthRatio;
+    const float bottomWidth = Character::kBodyWidth;
     
     const Vector2 bodyTL = {centerX - topWidth / 2.0f, bodyTop};
     const Vector2 bodyTR = {centerX + topWidth / 2.0f, bodyTop};
@@ -97,26 +85,24 @@ void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color, bool
     DrawLineV(bodyBL, bodyTL, outlineColor);
     
     // Draw arms
-    DrawArms(centerX, bodyTop, bodyBottom, skinColor, skinOutline, facing, punchProgress);
+    DrawArms(centerX, bodyTop, bodyBottom, Skin::kDefault, Skin::kOutline, facing, punchProgress);
     
     // Head - circle
-    const float headCenterY = bodyTop - headRadius - 1.0f;
+    const float headCenterY = bodyTop - Character::kHeadRadius - 1.0f;
     DrawCircle(static_cast<int>(centerX), static_cast<int>(headCenterY), 
-               headRadius, lightColor);
+               Character::kHeadRadius, lightColor);
     DrawCircleLines(static_cast<int>(centerX), static_cast<int>(headCenterY), 
-                    headRadius, outlineColor);
+                    Character::kHeadRadius, outlineColor);
     
     if (isPlayer) {
         // Player: friendly eyes (small dots) and smile
-        constexpr float eyeOffset = 2.5f;
-        constexpr float eyeRadius = 1.2f;
         const float eyeY = headCenterY - 1.0f;
         
         // Eyes
-        DrawCircle(static_cast<int>(centerX - eyeOffset), static_cast<int>(eyeY), 
-                   eyeRadius, outlineColor);
-        DrawCircle(static_cast<int>(centerX + eyeOffset), static_cast<int>(eyeY), 
-                   eyeRadius, outlineColor);
+        DrawCircle(static_cast<int>(centerX - Character::kEyeOffset), static_cast<int>(eyeY), 
+                   Character::kEyeRadius, outlineColor);
+        DrawCircle(static_cast<int>(centerX + Character::kEyeOffset), static_cast<int>(eyeY), 
+                   Character::kEyeRadius, outlineColor);
         
         // Small smile (arc)
         const float smileY = headCenterY + 2.0f;
@@ -126,14 +112,13 @@ void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color, bool
                  static_cast<int>(centerX + 2), static_cast<int>(smileY), outlineColor);
     } else {
         // Enemy: angry eyes (slanted) and frown
-        constexpr float eyeOffset = 2.5f;
         const float eyeY = headCenterY - 1.0f;
         
         // Angry eyes (slanted lines)
-        DrawLine(static_cast<int>(centerX - eyeOffset - 1), static_cast<int>(eyeY - 1),
-                 static_cast<int>(centerX - eyeOffset + 1), static_cast<int>(eyeY + 1), outlineColor);
-        DrawLine(static_cast<int>(centerX + eyeOffset - 1), static_cast<int>(eyeY + 1),
-                 static_cast<int>(centerX + eyeOffset + 1), static_cast<int>(eyeY - 1), outlineColor);
+        DrawLine(static_cast<int>(centerX - Character::kEyeOffset - 1), static_cast<int>(eyeY - 1),
+                 static_cast<int>(centerX - Character::kEyeOffset + 1), static_cast<int>(eyeY + 1), outlineColor);
+        DrawLine(static_cast<int>(centerX + Character::kEyeOffset - 1), static_cast<int>(eyeY + 1),
+                 static_cast<int>(centerX + Character::kEyeOffset + 1), static_cast<int>(eyeY - 1), outlineColor);
         
         // Frown
         const float frownY = headCenterY + 2.5f;
@@ -147,14 +132,8 @@ void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color, bool
 void IsometricRenderer::DrawArms(float centerX, float bodyTop, float bodyBottom, Color color,
                                   Color outlineColor, Direction facing, float punchProgress) const
 {
-    // Arm dimensions
-    constexpr float armLength = 8.0f;
-    constexpr float handRadius = 3.0f;
-    constexpr float punchExtend = 12.0f;  // Extra extension when punching
-    
     // Arm attachment point (middle of body sides)
     const float armY = (bodyTop + bodyBottom) / 2.0f - 2.0f;
-    const float armOffsetX = 8.0f;  // Distance from center to arm
     
     // Get direction vector for punching
     const int dx = DirectionUtil::GetDeltaX(facing);
@@ -180,54 +159,43 @@ void IsometricRenderer::DrawArms(float centerX, float bodyTop, float bodyBottom,
     }
     
     // Draw left arm (always at rest position)
-    const float leftArmX = centerX - armOffsetX;
-    const float leftHandX = leftArmX - armLength * 0.5f;
+    const float leftArmX = centerX - Character::kArmOffsetX;
+    const float leftHandX = leftArmX - Character::kArmLength * 0.5f;
     const float leftHandY = armY + 2.0f;
     
     // Left arm line
     DrawLineEx({leftArmX, armY}, {leftHandX, leftHandY}, 2.0f, outlineColor);
     // Left hand (fist)
-    DrawCircle(static_cast<int>(leftHandX), static_cast<int>(leftHandY), handRadius, color);
-    DrawCircleLines(static_cast<int>(leftHandX), static_cast<int>(leftHandY), handRadius, outlineColor);
+    DrawCircle(static_cast<int>(leftHandX), static_cast<int>(leftHandY), Character::kHandRadius, color);
+    DrawCircleLines(static_cast<int>(leftHandX), static_cast<int>(leftHandY), Character::kHandRadius, outlineColor);
     
     // Draw right arm (punching arm)
-    const float rightArmX = centerX + armOffsetX;
-    float rightHandX = rightArmX + armLength * 0.5f;
+    const float rightArmX = centerX + Character::kArmOffsetX;
+    float rightHandX = rightArmX + Character::kArmLength * 0.5f;
     float rightHandY = armY + 2.0f;
     
     // Apply punch extension in facing direction
     if (punchAmount > 0.0f) {
-        rightHandX += dirX * punchExtend * punchAmount;
-        rightHandY += dirY * punchExtend * punchAmount;
+        rightHandX += dirX * Character::kPunchExtend * punchAmount;
+        rightHandY += dirY * Character::kPunchExtend * punchAmount;
     }
     
     // Right arm line
     DrawLineEx({rightArmX, armY}, {rightHandX, rightHandY}, 2.0f, outlineColor);
     // Right hand (fist)
-    DrawCircle(static_cast<int>(rightHandX), static_cast<int>(rightHandY), handRadius, color);
-    DrawCircleLines(static_cast<int>(rightHandX), static_cast<int>(rightHandY), handRadius, outlineColor);
+    DrawCircle(static_cast<int>(rightHandX), static_cast<int>(rightHandY), Character::kHandRadius, color);
+    DrawCircleLines(static_cast<int>(rightHandX), static_cast<int>(rightHandY), Character::kHandRadius, outlineColor);
 }
 
-void IsometricRenderer::DrawDirectionArrow(float screenX, float screenY, Direction facing, Color color) const
+void IsometricRenderer::DrawDirectionArrow(float screenX, float screenY, Direction facing, Color /*color*/) const
 {
     // Convert grid direction to isometric screen direction
-    // In isometric view:
-    // Grid +X (East) -> Screen right-up
-    // Grid +Y (South) -> Screen right-down
-    // Grid -X (West) -> Screen left-down
-    // Grid -Y (North) -> Screen left-up
-    
     const int dx = DirectionUtil::GetDeltaX(facing);
     const int dy = DirectionUtil::GetDeltaY(facing);
     
     // Convert to isometric screen offset
-    // Isometric: screenX = (tileX - tileY) * halfWidth, screenY = (tileX + tileY) * halfHeight
     const float isoX = static_cast<float>(dx - dy) * (TILE_WIDTH / 4.0f);
     const float isoY = static_cast<float>(dx + dy) * (TILE_HEIGHT / 4.0f);
-    
-    // Arrow properties
-    constexpr float arrowLength = 18.0f;
-    constexpr float arrowHeadSize = 6.0f;
     
     // Normalize and scale
     const float len = std::sqrt(isoX * isoX + isoY * isoY);
@@ -238,36 +206,29 @@ void IsometricRenderer::DrawDirectionArrow(float screenX, float screenY, Directi
     
     // Arrow start (at entity feet) and end
     const Vector2 start = {screenX, screenY};
-    const Vector2 end = {screenX + dirX * arrowLength, screenY + dirY * arrowLength};
+    const Vector2 end = {screenX + dirX * Arrow::kLength, screenY + dirY * Arrow::kLength};
     
     // Arrow head points
     const float perpX = -dirY;
     const float perpY = dirX;
     const Vector2 head1 = {
-        end.x - dirX * arrowHeadSize + perpX * arrowHeadSize * 0.5f,
-        end.y - dirY * arrowHeadSize + perpY * arrowHeadSize * 0.5f
+        end.x - dirX * Arrow::kHeadSize + perpX * Arrow::kHeadSize * 0.5f,
+        end.y - dirY * Arrow::kHeadSize + perpY * Arrow::kHeadSize * 0.5f
     };
     const Vector2 head2 = {
-        end.x - dirX * arrowHeadSize - perpX * arrowHeadSize * 0.5f,
-        end.y - dirY * arrowHeadSize - perpY * arrowHeadSize * 0.5f
+        end.x - dirX * Arrow::kHeadSize - perpX * Arrow::kHeadSize * 0.5f,
+        end.y - dirY * Arrow::kHeadSize - perpY * Arrow::kHeadSize * 0.5f
     };
     
-    // Arrow color (bright yellow for visibility)
-    const Color arrowColor = {255, 220, 50, 255};
-    const Color arrowOutline = {180, 150, 30, 255};
-    
     // Draw arrow shaft (outline first, then fill)
-    DrawLineEx(start, end, 4.0f, arrowOutline);
-    DrawLineEx(start, end, 2.0f, arrowColor);
+    DrawLineEx(start, end, Arrow::kOutlineWidth, Arrow::kOutlineColor);
+    DrawLineEx(start, end, Arrow::kShaftWidth, Arrow::kFillColor);
     
-    // Draw arrow head using lines to ensure visibility
-    // Outline
-    DrawLineEx(end, head1, 4.0f, arrowOutline);
-    DrawLineEx(end, head2, 4.0f, arrowOutline);
-    
-    // Fill
-    DrawLineEx(end, head1, 2.0f, arrowColor);
-    DrawLineEx(end, head2, 2.0f, arrowColor);
+    // Draw arrow head (outline then fill)
+    DrawLineEx(end, head1, Arrow::kOutlineWidth, Arrow::kOutlineColor);
+    DrawLineEx(end, head2, Arrow::kOutlineWidth, Arrow::kOutlineColor);
+    DrawLineEx(end, head1, Arrow::kShaftWidth, Arrow::kFillColor);
+    DrawLineEx(end, head2, Arrow::kShaftWidth, Arrow::kFillColor);
 }
 
 void IsometricRenderer::DrawPlayer(const Player& player, Color color) const
@@ -293,84 +254,66 @@ void IsometricRenderer::DrawPlayerSprite(const Player& player) const
     // Center sprite on tile position
     // Sprite is drawn with bottom-center at tile position
     const float destX = pos.x - srcRect.width / 2.0f;
-    const float destY = pos.y - srcRect.height + TILE_HEIGHT / 2.0f + 8.0f;  // Adjust for standing on tile
+    const float destY = pos.y - srcRect.height + TILE_HEIGHT / 2.0f + Sprite::kVerticalOffset;
     
     Rectangle destRect = {destX, destY, srcRect.width, srcRect.height};
     
-    // Apply visual effects (Layering: these apply on top of any animation)
-    
-    // 1. Shake Effect if Hit
+    // Apply visual effects
     if (player.IsHit()) {
-        const int shakeAmount = 2;
-        destRect.x += GetRandomValue(-shakeAmount, shakeAmount);
-        
-        // 2. Flash Color if Hit (White tint)
-        DrawTexturePro(texture, srcRect, destRect, {0, 0}, 0.0f, {255, 100, 100, 255}); // Red tint for more visibility
+        destRect.x += GetRandomValue(-HitEffect::kShakeAmount, HitEffect::kShakeAmount);
+        DrawTexturePro(texture, srcRect, destRect, {0, 0}, 0.0f, HitEffect::kSpriteTintColor);
     } else {
-        // Draw normal sprite
         DrawTexturePro(texture, srcRect, destRect, {0, 0}, 0.0f, WHITE);
     }
 }
 
 void IsometricRenderer::DrawHealthBar(const Entity& entity, bool isPlayer) const
 {
-    // Show health bar if:
-    // 1. Entity has taken damage, OR
-    // 2. Entity's max health is not 100 (random health), OR  
-    // 3. Entity's current health is less than max health
+    // Show health bar if entity has taken damage or health differs from baseline
     const bool shouldShow = entity.HasBeenDamaged() || 
-                           entity.GetMaxHealth() != 100 ||
+                           entity.GetMaxHealth() != static_cast<int>(HealthBar::kBaselineHealth) ||
                            entity.GetHealth() < entity.GetMaxHealth();
     if (!shouldShow) return;
     
     const auto pos = TileToScreen(entity.GetRenderX(), entity.GetRenderY());
     
-    // Health bar dimensions
-    constexpr float barWidth = 24.0f;
-    constexpr float barHeight = 4.0f;
-    constexpr float barOffsetY = -32.0f;  // Above the entity head (adjusted for new character height)
-    constexpr float baselineHealth = 100.0f;  // Reference health for bar display
+    const float barX = pos.x - HealthBar::kWidth / 2.0f;
+    const float barY = pos.y + HealthBar::kOffsetY;
     
-    const float barX = pos.x - barWidth / 2.0f;
-    const float barY = pos.y + barOffsetY;
-    
-    // Draw background (dark gray)
+    // Draw background
     DrawRectangle(static_cast<int>(barX), static_cast<int>(barY), 
-                  static_cast<int>(barWidth), static_cast<int>(barHeight), 
-                  Color{40, 40, 40, 200});
+                  static_cast<int>(HealthBar::kWidth), static_cast<int>(HealthBar::kHeight), 
+                  HealthBar::kBackground);
     
-    // Calculate health percentage relative to baseline (100)
-    // This way, an entity with 30/30 HP shows 30% bar, not 100%
-    const float healthPercent = static_cast<float>(entity.GetHealth()) / baselineHealth;
-    const float fillWidth = barWidth * std::min(healthPercent, 1.0f);
+    // Calculate health percentage relative to baseline
+    const float healthPercent = static_cast<float>(entity.GetHealth()) / HealthBar::kBaselineHealth;
+    const float fillWidth = HealthBar::kWidth * std::min(healthPercent, 1.0f);
     
-    // Determine bar color based on current health relative to baseline
+    // Determine bar color
     Color barColor;
     if (isPlayer) {
-        // Player: Green (100-60%) -> Yellow (60-20%) -> Red (20-0%)
-        if (healthPercent > 0.6f) {
-            barColor = Color{0, 200, 0, 255};      // Green
-        } else if (healthPercent > 0.2f) {
-            barColor = Color{255, 200, 0, 255};    // Yellow
+        if (healthPercent > HealthBar::kHealthyThreshold) {
+            barColor = HealthBar::kPlayerHealthy;
+        } else if (healthPercent > HealthBar::kWarningThreshold) {
+            barColor = HealthBar::kPlayerWarning;
         } else {
-            barColor = Color{200, 0, 0, 255};      // Red
+            barColor = HealthBar::kPlayerCritical;
         }
     } else {
-        // Enemy: Always red
-        barColor = Color{200, 0, 0, 255};
+        barColor = HealthBar::kEnemy;
     }
     
     // Draw health fill
     if (fillWidth > 0) {
         DrawRectangle(static_cast<int>(barX), static_cast<int>(barY), 
-                      static_cast<int>(fillWidth), static_cast<int>(barHeight), 
+                      static_cast<int>(fillWidth), static_cast<int>(HealthBar::kHeight), 
                       barColor);
     }
     
     // Draw border
     DrawRectangleLines(static_cast<int>(barX), static_cast<int>(barY), 
-                       static_cast<int>(barWidth), static_cast<int>(barHeight), 
-                       Color{0, 0, 0, 255});
+                       static_cast<int>(HealthBar::kWidth), static_cast<int>(HealthBar::kHeight), 
+                       HealthBar::kBorder);
 }
 
 bool IsometricRenderer::IsTileVisible(int x, int y) const noexcept
@@ -560,12 +503,12 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
             if (e.depth >= static_cast<float>(depth)) {
                 bool drawn = false;
                 if (e.isPlayer && e.entity) {
-                    const Player* player = static_cast<const Player*>(e.entity);
-                    if (player->HasSprite()) {
+                    const Player* pPlayer = static_cast<const Player*>(e.entity);
+                    if (pPlayer->HasSprite()) {
                         // Draw shadow
                         DrawEllipse(static_cast<int>(e.renderX), static_cast<int>(e.renderY + TILE_HEIGHT / 2.0f), 
-                                    10.0f, 5.0f, TileColors::Shadow());
-                        DrawPlayerSprite(*player);
+                                    Character::kShadowRadiusX, Character::kShadowRadiusY, TileColors::Shadow());
+                        DrawPlayerSprite(*pPlayer);
                         drawn = true;
                     }
                 }
@@ -590,12 +533,12 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
         
         bool drawn = false;
         if (e.isPlayer && e.entity) {
-            const Player* player = static_cast<const Player*>(e.entity);
-            if (player->HasSprite()) {
+            const Player* pPlayer = static_cast<const Player*>(e.entity);
+            if (pPlayer->HasSprite()) {
                 // Draw shadow
                 DrawEllipse(static_cast<int>(e.renderX), static_cast<int>(e.renderY + TILE_HEIGHT / 2.0f), 
-                            10.0f, 5.0f, TileColors::Shadow());
-                DrawPlayerSprite(*player);
+                            Character::kShadowRadiusX, Character::kShadowRadiusY, TileColors::Shadow());
+                DrawPlayerSprite(*pPlayer);
                 drawn = true;
             }
         }

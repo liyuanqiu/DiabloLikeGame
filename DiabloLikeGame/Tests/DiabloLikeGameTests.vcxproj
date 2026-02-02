@@ -107,12 +107,12 @@
     <ClCompile Include="..\Animation\CharacterAnimator.cpp" />
     <ClCompile Include="..\Combat\CombatState.cpp" />
     <ClCompile Include="..\World\Pathfinder.cpp" />
-    <ClCompile Include="..\World\MapGenerator.cpp" />
+    
     <ClCompile Include="..\Camera\Camera.cpp" />
     <ClCompile Include="..\Player.cpp" />
     <ClCompile Include="..\Input\InputManager.cpp" />
     <ClCompile Include="..\Core\IniParser.cpp" />
-    <ClCompile Include="..\Core\GameConfig.cpp" />
+    
     <ClCompile Include="..\Core\TileConstants.cpp" />
     <ClCompile Include="..\Entity.cpp" />
     <ClCompile Include="PlayerTests.cpp" />

@@ -6,6 +6,7 @@
 #include "../Camera/Camera.h"
 #include "../IsometricRenderer.h"
 #include "../World/OccupancyMap.h"
+#include "../Config/MapConfig.h"
 #include "GameConfig.h"
 #include <vector>
 #include <random>
@@ -46,6 +47,9 @@ private:
     void HandleMouseInput(InputManager& input);
     void HandleControllerInput(InputManager& input, float deltaTime);
     
+    // Movement helper - tries diagonal then single axis fallback
+    void TryMoveWithFallback(int dx, int dy);
+    
     // Find valid spawn position for player
     [[nodiscard]] bool FindPlayerSpawnPosition(int& outX, int& outY) const;
     
@@ -62,6 +66,7 @@ private:
     GameCamera m_camera{};
     IsometricRenderer m_renderer{};
     OccupancyMap m_occupancy{};
+    MapConfig m_mapConfig{};  // Current map's configuration
     
     // Random number generator
     std::mt19937 m_rng;

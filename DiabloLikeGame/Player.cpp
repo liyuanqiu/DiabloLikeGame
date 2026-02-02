@@ -245,13 +245,20 @@ void Player::UpdateCombatState()
     m_combatState.CleanupDeadEnemies();
     
     // Also check if engaged enemies have exited combat
-    for (auto it = m_combatState.engagedEnemies.begin(); 
-         it != m_combatState.engagedEnemies.end(); ) {
-        if (*it && !(*it)->IsInCombat()) {
-            it = m_combatState.engagedEnemies.erase(it);
-        } else {
-            ++it;
+    // Collect enemies to remove first (SmallSet doesn't support erase during iteration)
+    Enemy* toRemove[16];
+    size_t removeCount = 0;
+    
+    for (auto* enemy : m_combatState.engagedEnemies) {
+        if (enemy && !enemy->IsInCombat()) {
+            if (removeCount < 16) {
+                toRemove[removeCount++] = enemy;
+            }
         }
+    }
+    
+    for (size_t i = 0; i < removeCount; ++i) {
+        m_combatState.engagedEnemies.erase(toRemove[i]);
     }
     
     if (m_combatState.engagedEnemies.empty()) {

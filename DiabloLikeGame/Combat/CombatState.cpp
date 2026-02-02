@@ -4,12 +4,21 @@
 
 void EnemyCombatState::CleanupThreatList()
 {
-    for (auto it = threatList.begin(); it != threatList.end(); ) {
-        if (*it == nullptr || !(*it)->IsAlive()) {
-            it = threatList.erase(it);
-        } else {
-            ++it;
+    // Collect dead entities first (can't erase while iterating SmallSet)
+    Entity* deadEntities[8];
+    size_t deadCount = 0;
+    
+    for (auto* entity : threatList) {
+        if (entity == nullptr || !entity->IsAlive()) {
+            if (deadCount < 8) {
+                deadEntities[deadCount++] = entity;
+            }
         }
+    }
+    
+    // Remove dead entities
+    for (size_t i = 0; i < deadCount; ++i) {
+        threatList.erase(deadEntities[i]);
     }
     
     // Clear current target if dead
@@ -38,12 +47,21 @@ bool EnemyCombatState::HasThreatInVision(int currentX, int currentY) const
 
 void PlayerCombatState::CleanupDeadEnemies()
 {
-    for (auto it = engagedEnemies.begin(); it != engagedEnemies.end(); ) {
-        if (*it == nullptr || !(*it)->IsAlive()) {
-            it = engagedEnemies.erase(it);
-        } else {
-            ++it;
+    // Collect dead enemies first
+    Enemy* deadEnemies[16];
+    size_t deadCount = 0;
+    
+    for (auto* enemy : engagedEnemies) {
+        if (enemy == nullptr || !enemy->IsAlive()) {
+            if (deadCount < 16) {
+                deadEnemies[deadCount++] = enemy;
+            }
         }
+    }
+    
+    // Remove dead enemies
+    for (size_t i = 0; i < deadCount; ++i) {
+        engagedEnemies.erase(deadEnemies[i]);
     }
     
     if (engagedEnemies.empty()) {

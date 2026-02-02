@@ -10,6 +10,7 @@ enum class InputMode {
 };
 
 // Game configuration constants (compile-time defaults)
+// NOTE: Runtime configuration is loaded via ConfigManager from game.ini
 namespace Config {
     // Window
     inline constexpr int SCREEN_WIDTH = 1920;
@@ -22,49 +23,15 @@ namespace Config {
     inline constexpr float CONTROLLER_CAMERA_PAN_SPEED = 15.0f;
     inline constexpr float MOUSE_DRAG_THRESHOLD = 5.0f;
     
-    // Player
+    // Player (compile-time defaults, actual values from player.ini via ConfigManager)
     inline constexpr float PLAYER_MOVE_SPEED = 6.0f;
     inline constexpr float PLAYER_HEIGHT = 24.0f;
     inline constexpr float PLAYER_WIDTH = 20.0f;
     
-    // Enemy
+    // Enemy (compile-time defaults, actual values from game.ini via ConfigManager)
     inline constexpr float ENEMY_SPAWN_RATE = 0.10f;
     
     // Paths
     inline constexpr const char* DEFAULT_MAP_PATH = "maps/default.map";
 }
 
-// Runtime configuration loader (optional, overrides defaults)
-class GameConfig {
-public:
-    // Load configuration from INI file (call at startup)
-    static bool Load(const char* filename = "config/game.ini");
-    
-    // Runtime values (fall back to Config:: constants if not loaded)
-    static int ScreenWidth() { return s_screenWidth; }
-    static int ScreenHeight() { return s_screenHeight; }
-    static const std::string& WindowTitle() { return s_windowTitle; }
-    static int CameraPanSpeed() { return s_cameraPanSpeed; }
-    static float CameraInitialYOffset() { return s_cameraInitialYOffset; }
-    static float ControllerCameraPanSpeed() { return s_controllerCameraPanSpeed; }
-    static float MouseDragThreshold() { return s_mouseDragThreshold; }
-    static float PlayerMoveSpeed() { return s_playerMoveSpeed; }
-    static float PlayerHeight() { return s_playerHeight; }
-    static float PlayerWidth() { return s_playerWidth; }
-    static float EnemySpawnRate() { return s_enemySpawnRate; }
-    static const std::string& DefaultMapPath() { return s_defaultMapPath; }
-
-private:
-    inline static int s_screenWidth = Config::SCREEN_WIDTH;
-    inline static int s_screenHeight = Config::SCREEN_HEIGHT;
-    inline static std::string s_windowTitle = Config::WINDOW_TITLE;
-    inline static int s_cameraPanSpeed = Config::CAMERA_PAN_SPEED;
-    inline static float s_cameraInitialYOffset = Config::CAMERA_INITIAL_Y_OFFSET;
-    inline static float s_controllerCameraPanSpeed = Config::CONTROLLER_CAMERA_PAN_SPEED;
-    inline static float s_mouseDragThreshold = Config::MOUSE_DRAG_THRESHOLD;
-    inline static float s_playerMoveSpeed = Config::PLAYER_MOVE_SPEED;
-    inline static float s_playerHeight = Config::PLAYER_HEIGHT;
-    inline static float s_playerWidth = Config::PLAYER_WIDTH;
-    inline static float s_enemySpawnRate = Config::ENEMY_SPAWN_RATE;
-    inline static std::string s_defaultMapPath = Config::DEFAULT_MAP_PATH;
-};

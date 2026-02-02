@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
-#include <set>
+#include "../Config/CombatConfig.h"
+#include <array>
+#include <algorithm>
 #include <cstdint>
 
 // Forward declarations
@@ -18,6 +19,51 @@ enum class CombatBehavior : uint8_t {
     Returning       // Returning to spawn point
 };
 
+// Fixed-size threat list to avoid dynamic allocation
+// Most combat scenarios have few threats (typically 1-3)
+template<typename T, size_t MaxSize>
+class SmallSet {
+public:
+    void clear() noexcept { m_size = 0; }
+    [[nodiscard]] size_t size() const noexcept { return m_size; }
+    [[nodiscard]] bool empty() const noexcept { return m_size == 0; }
+    
+    void insert(T value) {
+        if (m_size >= MaxSize) return;  // Silently ignore overflow
+        // Check for duplicates
+        for (size_t i = 0; i < m_size; ++i) {
+            if (m_data[i] == value) return;
+        }
+        m_data[m_size++] = value;
+    }
+    
+    void erase(T value) noexcept {
+        for (size_t i = 0; i < m_size; ++i) {
+            if (m_data[i] == value) {
+                m_data[i] = m_data[--m_size];
+                return;
+            }
+        }
+    }
+    
+    [[nodiscard]] bool contains(T value) const noexcept {
+        for (size_t i = 0; i < m_size; ++i) {
+            if (m_data[i] == value) return true;
+        }
+        return false;
+    }
+    
+    // Iterator support
+    T* begin() noexcept { return m_data.data(); }
+    T* end() noexcept { return m_data.data() + m_size; }
+    const T* begin() const noexcept { return m_data.data(); }
+    const T* end() const noexcept { return m_data.data() + m_size; }
+
+private:
+    std::array<T, MaxSize> m_data{};
+    size_t m_size = 0;
+};
+
 // Combat state for enemies
 struct EnemyCombatState {
     bool inCombat = false;
@@ -27,18 +73,18 @@ struct EnemyCombatState {
     float combatTimer = 0.0f;           // Time since last successful action
     float lastDamageReceivedTime = 0.0f; // Time since last took damage
     
-    // Threat tracking
-    std::set<Entity*> threatList;        // All entities that have damaged us
+    // Threat tracking (fixed-size to avoid allocation)
+    SmallSet<Entity*, 8> threatList;    // All entities that have damaged us
     Entity* currentTarget = nullptr;     // Current chase/attack target
     
     // Spawn point for returning
     int spawnX = 0;
     int spawnY = 0;
     
-    // Configuration
-    static constexpr float kCombatTimeout = 20.0f;    // Seconds before giving up
-    static constexpr int kLeashDistance = 30;         // Max distance from spawn
-    static constexpr int kVisionRange = 8;            // Tiles for aggro detection
+    // Configuration (using CombatConfig defaults)
+    static constexpr float kCombatTimeout = CombatConfig::Enemy::kCombatTimeout;
+    static constexpr int kLeashDistance = CombatConfig::Enemy::kLeashDistance;
+    static constexpr int kVisionRange = CombatConfig::Enemy::kVisionRange;
     
     // Reset combat state
     void Reset() noexcept {
@@ -103,7 +149,7 @@ struct EnemyCombatState {
 // Combat state for player
 struct PlayerCombatState {
     bool inCombat = false;
-    std::set<Enemy*> engagedEnemies;     // Enemies currently fighting player
+    SmallSet<Enemy*, 16> engagedEnemies;  // Enemies currently fighting player
     
     // Enter combat with an enemy
     void AddEnemy(Enemy* enemy) {

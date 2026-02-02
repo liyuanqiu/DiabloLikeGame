@@ -135,3 +135,15 @@ Color IniParser::GetColor(
     std::string_view section, std::string_view key, Color defaultValue) const {
     return GetColor(section, key).value_or(defaultValue);
 }
+
+bool IniParser::HasKey(std::string_view section, std::string_view key) const {
+    const auto sectionIt = m_data.find(std::string(section));
+    if (sectionIt == m_data.end()) {
+        return false;
+    }
+    return sectionIt->second.find(std::string(key)) != sectionIt->second.end();
+}
+
+bool IniParser::HasSection(std::string_view section) const {
+    return m_data.find(std::string(section)) != m_data.end();
+}

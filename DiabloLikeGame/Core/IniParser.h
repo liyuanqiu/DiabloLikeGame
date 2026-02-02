@@ -43,6 +43,12 @@ public:
     
     [[nodiscard]] Color GetColor(
         std::string_view section, std::string_view key, Color defaultValue) const;
+    
+    // Check if a key exists in a section
+    [[nodiscard]] bool HasKey(std::string_view section, std::string_view key) const;
+    
+    // Check if a section exists
+    [[nodiscard]] bool HasSection(std::string_view section) const;
 
 private:
     // section -> (key -> value)
