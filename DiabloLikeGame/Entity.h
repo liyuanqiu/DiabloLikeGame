@@ -2,12 +2,25 @@
 
 #include "raylib.h"
 #include "Core/Direction.h"
+#include "Net/EntityId.h"
 
 // Base class for all game entities (player, enemies, NPCs, etc.)
+// 
+// Multiplayer Architecture Note:
+// Each entity has a unique EntityId for network synchronization. The ID contains:
+// - Entity type (player, enemy, projectile)
+// - Owner (which player/server owns this entity)
+// - Instance number (unique within owner scope)
+//
+// For server-authoritative multiplayer:
+// - Server assigns IDs and has authority over all game state
+// - Clients receive entity updates and apply them to local copies
+// - Local player input is sent to server for validation
 class Entity {
 public:
     Entity() = default;
     Entity(int tileX, int tileY);
+    Entity(EntityId id, int tileX, int tileY);
     virtual ~Entity() = default;
     
     // Non-copyable but movable
@@ -15,6 +28,11 @@ public:
     Entity& operator=(const Entity&) = default;
     Entity(Entity&&) = default;
     Entity& operator=(Entity&&) = default;
+    
+    // Network identity
+    [[nodiscard]] EntityId GetEntityId() const noexcept { return m_entityId; }
+    void SetEntityId(EntityId id) noexcept { m_entityId = id; }
+    [[nodiscard]] bool HasValidId() const noexcept { return m_entityId.IsValid(); }
     
     // Position getters
     [[nodiscard]] int GetTileX() const noexcept { return m_tileX; }
@@ -64,6 +82,9 @@ public:
     void SetRenderPosition(float renderX, float renderY) noexcept;
 
 protected:
+    // Network identity
+    EntityId m_entityId{};
+    
     // Tile position (grid coordinates)
     int m_tileX{};
     int m_tileY{};

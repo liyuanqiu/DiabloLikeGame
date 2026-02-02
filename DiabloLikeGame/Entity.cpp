@@ -15,6 +15,21 @@ Entity::Entity(int tileX, int tileY)
 {
 }
 
+Entity::Entity(EntityId id, int tileX, int tileY)
+    : m_entityId(id)
+    , m_tileX(tileX)
+    , m_tileY(tileY)
+    , m_renderX(static_cast<float>(tileX))
+    , m_renderY(static_cast<float>(tileY))
+    , m_health(100)
+    , m_maxHealth(100)
+    , m_hasBeenDamaged(false)
+    , m_isAlive(true)
+    , m_isHit(false)
+    , m_hitTimer(0.0f)
+{
+}
+
 void Entity::SetTilePosition(int tileX, int tileY) noexcept
 {
     m_tileX = tileX;

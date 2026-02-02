@@ -47,6 +47,34 @@ namespace EntityTests
             Assert::AreEqual(100, entity.GetMaxHealth());
         }
 
+        TEST_METHOD(NewEntityHasNoValidId)
+        {
+            Entity entity(0, 0);
+            Assert::IsFalse(entity.HasValidId());
+        }
+
+        TEST_METHOD(ConstructionWithEntityId)
+        {
+            EntityId id = EntityId::CreatePlayer(1);
+            Entity entity(id, 5, 10);
+            Assert::IsTrue(entity.HasValidId());
+            Assert::AreEqual(id.value, entity.GetEntityId().value);
+            Assert::AreEqual(5, entity.GetTileX());
+            Assert::AreEqual(10, entity.GetTileY());
+        }
+
+        TEST_METHOD(SetEntityIdWorks)
+        {
+            Entity entity(0, 0);
+            Assert::IsFalse(entity.HasValidId());
+            
+            EntityId id = EntityId::CreateEnemy(42);
+            entity.SetEntityId(id);
+            
+            Assert::IsTrue(entity.HasValidId());
+            Assert::AreEqual(id.value, entity.GetEntityId().value);
+        }
+
         TEST_METHOD(NewEntityNotDamaged)
         {
             Entity entity(0, 0);
