@@ -32,8 +32,17 @@ if (!file.is_open()) return false;
         const auto eqPos = line.find('=');
         if (eqPos != std::string::npos) {
             auto key = Trim(line.substr(0, eqPos));
-            auto value = Trim(line.substr(eqPos + 1));
-            m_data[currentSection][key] = value;
+            auto value = line.substr(eqPos + 1);
+            
+            // Remove inline comments (anything after ; or #)
+            if (auto commentPos = value.find(';'); commentPos != std::string::npos) {
+                value = value.substr(0, commentPos);
+            }
+            if (auto commentPos = value.find('#'); commentPos != std::string::npos) {
+                value = value.substr(0, commentPos);
+            }
+            
+            m_data[currentSection][key] = Trim(value);
         }
     }
     return true;

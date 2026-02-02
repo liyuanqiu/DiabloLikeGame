@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Entity.h"
+#include "Combat/CombatState.h"
 #include <vector>
 #include <random>
 
@@ -36,6 +37,12 @@ public:
     // Process punch hit detection (called when punch is at peak)
     // Returns pointer to hit enemy, or nullptr if no hit
     Enemy* ProcessPunchHit(std::vector<Enemy>& enemies, std::mt19937& rng);
+    
+    // Combat state
+    [[nodiscard]] const PlayerCombatState& GetCombatState() const noexcept { return m_combatState; }
+    [[nodiscard]] PlayerCombatState& GetCombatState() noexcept { return m_combatState; }
+    [[nodiscard]] bool IsInCombat() const noexcept { return m_combatState.IsInCombat(); }
+    void UpdateCombatState();  // Call each frame to cleanup dead enemies
 
     // Player-specific getters
     [[nodiscard]] bool IsMoving() const noexcept { return m_isMoving; }
@@ -85,4 +92,7 @@ private:
     float m_baseAttack{20.0f};        // Player base attack
     float m_critChance{0.10f};        // 10% crit chance
     float m_critMultiplier{2.0f};     // 2x damage on crit
+    
+    // Combat state
+    PlayerCombatState m_combatState{};
 };

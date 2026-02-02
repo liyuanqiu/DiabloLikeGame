@@ -2,6 +2,7 @@
 
 #include "Entity.h"
 #include "Config/EntityConfig.h"
+#include "Combat/CombatState.h"
 #include <random>
 #include <string>
 
@@ -23,10 +24,19 @@ public:
                 std::mt19937& rng, Player* player = nullptr);
     
     // Override TakeDamage to trigger aggression
-    void TakeDamage(int amount) noexcept;
+    void TakeDamage(int amount, Entity* attacker = nullptr) noexcept;
     
     // Apply configuration
     void ApplyConfig(const EnemyTypeConfig& config);
+    
+    // Combat state access
+    [[nodiscard]] const EnemyCombatState& GetCombatState() const noexcept { return m_combatState; }
+    [[nodiscard]] EnemyCombatState& GetCombatState() noexcept { return m_combatState; }
+    [[nodiscard]] bool IsInCombat() const noexcept { return m_combatState.inCombat; }
+    [[nodiscard]] CombatBehavior GetCombatBehavior() const noexcept { return m_combatState.behavior; }
+    
+    // Notify when combat ends (for player tracking)
+    void ExitCombat() noexcept;
     
     // Identity
     [[nodiscard]] const std::string& GetTypeId() const noexcept { return m_typeId; }
@@ -51,8 +61,30 @@ public:
     [[nodiscard]] Color GetColor() const noexcept { return m_color; }
 
 private:
-    // Try to move one step in a random direction
-    bool TryMoveOneStep(const Map& map, OccupancyMap& occupancy, std::mt19937& rng);
+// Behavior updates based on aggression type
+void UpdatePassiveBehavior(float deltaTime, const Map& map, OccupancyMap& occupancy, 
+                           std::mt19937& rng, Player* player);
+void UpdateDefensiveBehavior(float deltaTime, const Map& map, OccupancyMap& occupancy, 
+                             std::mt19937& rng, Player* player);
+void UpdateAggressiveBehavior(float deltaTime, const Map& map, OccupancyMap& occupancy, 
+                              std::mt19937& rng, Player* player);
+void UpdateReturningBehavior(float deltaTime, const Map& map, OccupancyMap& occupancy, 
+                             std::mt19937& rng);
+void UpdateWanderingBehavior(float deltaTime, const Map& map, OccupancyMap& occupancy, 
+                             std::mt19937& rng, Player* player);
+    
+// Try to move one step in a random direction (for wandering)
+bool TryMoveOneStep(const Map& map, OccupancyMap& occupancy, std::mt19937& rng);
+    
+// Try to move toward a target position
+bool TryMoveToward(int targetX, int targetY, const Map& map, OccupancyMap& occupancy);
+    
+// Try to move away from a target position (for fleeing)
+bool TryMoveAwayFrom(int targetX, int targetY, const Map& map, OccupancyMap& occupancy, 
+                     std::mt19937& rng);
+    
+// Try to move toward spawn point (for returning)
+bool TryMoveTowardSpawn(const Map& map, OccupancyMap& occupancy);
     
     // Get speed multiplier for diagonal vs orthogonal movement
     [[nodiscard]] float GetCurrentSpeedMultiplier() const noexcept;
@@ -95,6 +127,9 @@ private:
     // Aggression
     AggressionType m_aggressionType{AggressionType::Defensive};
     bool m_isAggressive{false};
+    
+    // Combat state
+    EnemyCombatState m_combatState{};
     
     // Visual
     Color m_color{230, 41, 55, 255};

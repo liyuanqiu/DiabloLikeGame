@@ -211,7 +211,11 @@ Enemy* Player::ProcessPunchHit(std::vector<Enemy>& enemies, std::mt19937& rng)
         if (enemy.GetTileX() == targetX && enemy.GetTileY() == targetY) {
             // Hit! Calculate and apply damage
             const int damage = CalculateDamage(rng);
-            enemy.TakeDamage(damage);
+            enemy.TakeDamage(damage, this);
+            
+            // Player enters combat
+            m_combatState.AddEnemy(&enemy);
+            
             return &enemy;
         }
     }
@@ -219,10 +223,32 @@ Enemy* Player::ProcessPunchHit(std::vector<Enemy>& enemies, std::mt19937& rng)
     return nullptr;  // No hit
 }
 
+void Player::UpdateCombatState()
+{
+    m_combatState.CleanupDeadEnemies();
+    
+    // Also check if engaged enemies have exited combat
+    for (auto it = m_combatState.engagedEnemies.begin(); 
+         it != m_combatState.engagedEnemies.end(); ) {
+        if (*it && !(*it)->IsInCombat()) {
+            it = m_combatState.engagedEnemies.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    
+    if (m_combatState.engagedEnemies.empty()) {
+        m_combatState.inCombat = false;
+    }
+}
+
 void Player::Update(float deltaTime, const Map& map, OccupancyMap& occupancy)
 {
     // Update punch animation
     UpdatePunch(deltaTime);
+    
+    // Update combat state
+    UpdateCombatState();
     
     // If we have a destination but no current path, try to re-plan
     if (m_hasDestination && m_path.empty() && !m_isMoving) {

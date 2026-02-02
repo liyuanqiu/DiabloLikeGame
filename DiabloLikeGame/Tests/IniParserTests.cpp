@@ -330,4 +330,44 @@ namespace IniParserTests
                 parser.GetString("Section2", "Key", ""));
         }
     };
+
+    TEST_CLASS(IniParserInlineCommentsTests)
+    {
+    public:
+        TEST_METHOD(InlineComment_Semicolon)
+        {
+            TempIniFile file("[Section]\nKey=Value ; This is a comment");
+            IniParser parser;
+            parser.Load(file.GetPath());
+            Assert::AreEqual(std::string("Value"), 
+                parser.GetString("Section", "Key", ""));
+        }
+        
+        TEST_METHOD(InlineComment_Hash)
+        {
+            TempIniFile file("[Section]\nKey=Value # This is a comment");
+            IniParser parser;
+            parser.Load(file.GetPath());
+            Assert::AreEqual(std::string("Value"), 
+                parser.GetString("Section", "Key", ""));
+        }
+        
+        TEST_METHOD(InlineComment_WithSpaces)
+        {
+            TempIniFile file("[Section]\nKey=  Value  ; comment");
+            IniParser parser;
+            parser.Load(file.GetPath());
+            Assert::AreEqual(std::string("Value"), 
+                parser.GetString("Section", "Key", ""));
+        }
+        
+        TEST_METHOD(InlineComment_AggressionExample)
+        {
+            TempIniFile file("[Behavior]\nAggression = Aggressive  ; Attacks player on sight");
+            IniParser parser;
+            parser.Load(file.GetPath());
+            Assert::AreEqual(std::string("Aggressive"), 
+                parser.GetString("Behavior", "Aggression", ""));
+        }
+    };
 }

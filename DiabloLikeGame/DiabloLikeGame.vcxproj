@@ -130,6 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera\Camera.cpp" />
+    <ClCompile Include="Combat\CombatState.cpp" />
     <ClCompile Include="Config\ConfigManager.cpp" />
     <ClCompile Include="Core\Game.cpp" />
     <ClCompile Include="Core\GameConfig.cpp" />
@@ -152,6 +153,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera\Camera.h" />
+    <ClInclude Include="Combat\CombatState.h" />
     <ClInclude Include="Config\ConfigManager.h" />
     <ClInclude Include="Config\EntityConfig.h" />
     <ClInclude Include="Core\Direction.h" />

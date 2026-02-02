@@ -32,14 +32,17 @@ bool Game::Init()
     InputManager::Instance().AddDevice(std::make_unique<MouseInput>());
     InputManager::Instance().AddDevice(std::make_unique<ControllerInput>(0));
     
-    // Generate random map (200x200)
-    MapGenerator::Config mapConfig;
-    mapConfig.width = 200;
-    mapConfig.height = 200;
-    mapConfig.wallDensity = 0.45f;
-    mapConfig.smoothIterations = 5;
-    mapConfig.waterChance = 0.01f;
-    m_map = MapGenerator::Generate(mapConfig);
+    // Load default map from file
+    if (!m_map.LoadFromFile("maps/default.map")) {
+        // Fallback: generate random map if default map not found
+        MapGenerator::Config mapConfig;
+        mapConfig.width = 40;
+        mapConfig.height = 40;
+        mapConfig.wallDensity = 0.45f;
+        mapConfig.smoothIterations = 5;
+        mapConfig.waterChance = 0.01f;
+        m_map = MapGenerator::Generate(mapConfig);
+    }
     
     // Initialize camera
     m_camera.Init(Config::SCREEN_WIDTH, Config::SCREEN_HEIGHT);
