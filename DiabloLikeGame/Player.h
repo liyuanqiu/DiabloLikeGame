@@ -2,6 +2,7 @@
 
 #include "Entity.h"
 #include "Combat/CombatState.h"
+#include "Animation/CharacterAnimator.h"
 #include <vector>
 #include <random>
 
@@ -18,6 +19,10 @@ public:
 
     // Initialize player at a position with health (default 100)
     void Init(int tileX, int tileY, int health = 100);
+    
+    // Load/unload sprite sheet for animation
+    bool LoadSprite(const std::string& spriteSheetPath);
+    void UnloadSprite();
 
     // Update player movement (with occupancy tracking and path re-planning)
     void Update(float deltaTime, const Map& map, OccupancyMap& occupancy);
@@ -59,8 +64,16 @@ public:
     // Configuration
     void SetMoveSpeed(float speed) noexcept { m_moveSpeed = speed; }
     [[nodiscard]] float GetMoveSpeed() const noexcept { return m_moveSpeed; }
+    
+    // Animation
+    [[nodiscard]] CharacterAnimator& GetAnimator() noexcept { return m_animator; }
+    [[nodiscard]] const CharacterAnimator& GetAnimator() const noexcept { return m_animator; }
+    [[nodiscard]] bool HasSprite() const noexcept { return m_animator.IsLoaded(); }
 
 private:
+    // Update animation state based on player state
+    void UpdateAnimationState();
+    
     // Calculate speed multiplier for current movement (diagonal vs orthogonal)
     [[nodiscard]] float GetCurrentSpeedMultiplier() const noexcept;
     
@@ -95,4 +108,7 @@ private:
     
     // Combat state
     PlayerCombatState m_combatState{};
+    
+    // Animation
+    CharacterAnimator m_animator{};
 };

@@ -104,6 +104,7 @@
     <ClCompile Include="InputTests.cpp" />
     <ClCompile Include="ConfigTests.cpp" />
     <!-- Source files from main project -->
+    <ClCompile Include="..\Animation\CharacterAnimator.cpp" />
     <ClCompile Include="..\Combat\CombatState.cpp" />
     <ClCompile Include="..\World\Pathfinder.cpp" />
     <ClCompile Include="..\World\MapGenerator.cpp" />

@@ -19,6 +19,17 @@ void Player::Init(int tileX, int tileY, int health)
     m_hasDestination = false;
 }
 
+bool Player::LoadSprite(const std::string& spriteSheetPath)
+{
+    auto config = CreateDefaultPlayerAnimConfig(spriteSheetPath);
+    return m_animator.Load(config);
+}
+
+void Player::UnloadSprite()
+{
+    m_animator.Unload();
+}
+
 float Player::GetCurrentSpeedMultiplier() const noexcept
 {
     // Grid-based timing:
@@ -250,6 +261,10 @@ void Player::Update(float deltaTime, const Map& map, OccupancyMap& occupancy)
     // Update combat state
     UpdateCombatState();
     
+    // Update animation state and animator
+    UpdateAnimationState();
+    m_animator.Update(deltaTime);
+    
     // If we have a destination but no current path, try to re-plan
     if (m_hasDestination && m_path.empty() && !m_isMoving) {
         TryReplanPath(map, occupancy);
@@ -343,4 +358,26 @@ void Player::Update(float deltaTime, const Map& map, OccupancyMap& occupancy)
             GetRenderY() + dy * invDist * moveAmount
         );
     }
+}
+
+void Player::UpdateAnimationState()
+{
+    // Determine animation state based on player state
+    AnimationState newState = AnimationState::Idle;
+    
+    if (!IsAlive()) {
+        newState = AnimationState::Die;
+    } else if (IsPunching()) {
+        newState = AnimationState::Attack;
+    } else if (m_isMoving) {
+        newState = AnimationState::Walk;
+    } else {
+        newState = AnimationState::Idle;
+    }
+    
+    // Update animator state
+    m_animator.SetState(newState);
+    
+    // Always update direction
+    m_animator.SetDirection(GetFacing());
 }

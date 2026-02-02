@@ -28,6 +28,15 @@ typedef struct Rectangle {
     float height;
 } Rectangle;
 
+// Texture2D type - for sprite animations
+typedef struct Texture2D {
+    unsigned int id;        // OpenGL texture id
+    int width;              // Texture base width
+    int height;             // Texture base height
+    int mipmaps;            // Mipmap levels, 1 by default
+    int format;             // Data format (PixelFormat type)
+} Texture2D;
+
 // Common colors (not used in tests but may be referenced)
 #define RAYWHITE  (Color){ 245, 245, 245, 255 }
 #define WHITE     (Color){ 255, 255, 255, 255 }
@@ -91,5 +100,9 @@ inline float GetGamepadAxisMovement(int gamepad, int axis) { (void)gamepad; (voi
 // Drawing functions (stubs)
 inline void DrawTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color) { (void)v1; (void)v2; (void)v3; (void)color; }
 inline void DrawLine(int startX, int startY, int endX, int endY, Color color) { (void)startX; (void)startY; (void)endX; (void)endY; (void)color; }
+
+// Texture functions (stubs)
+inline Texture2D LoadTexture(const char* fileName) { (void)fileName; return {0, 0, 0, 0, 0}; }
+inline void UnloadTexture(Texture2D texture) { (void)texture; }
 
 #endif // RAYLIB_H
