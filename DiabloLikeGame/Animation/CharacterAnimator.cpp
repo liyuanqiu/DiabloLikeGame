@@ -153,13 +153,15 @@ void CharacterAnimator::ResetAnimation()
 Rectangle CharacterAnimator::GetSourceRect() const
 {
     const auto& seq = GetCurrentSequence();
-    const int frameIndex = seq.startFrame + m_currentFrame;
     
-    const int col = frameIndex % m_config.columns;
-    const int row = frameIndex / m_config.columns;
+    // startFrame is the position of frame 0 for this direction
+    // To get frame N, we add N rows (each row has 8 columns/directions)
+    const int baseCol = seq.startFrame % m_config.columns;  // Direction column
+    const int baseRow = seq.startFrame / m_config.columns;  // Starting row
+    const int row = baseRow + m_currentFrame;  // Current frame's row
     
     return Rectangle{
-        static_cast<float>(col * m_config.frameWidth),
+        static_cast<float>(baseCol * m_config.frameWidth),
         static_cast<float>(row * m_config.frameHeight),
         static_cast<float>(m_config.frameWidth),
         static_cast<float>(m_config.frameHeight)
@@ -205,57 +207,64 @@ CharacterAnimConfig CreateDefaultPlayerAnimConfig(const std::string& spriteSheet
     constexpr int kHitFrames = 3;
     constexpr int kDieFrames = 6;
     
-    // Calculate starting frame for each state
-    // Layout: Each state block has (frameCount * 8 directions) frames
-    // Arranged as: Row 0-3 = Idle (4 frames * 8 dirs), Row 4-11 = Walk, etc.
+    // Sprite sheet layout:
+    // - Each row contains 8 directions (columns 0-7: S, SW, W, NW, N, NE, E, SE)
+    // - Rows are grouped by animation state
+    // - Row 0-3: Idle frames (4 rows)
+    // - Row 4-11: Walk frames (8 rows)
+    // - Row 12-17: Attack frames (6 rows)
+    // - Row 18-20: Hit frames (3 rows)  
+    // - Row 21-26: Die frames (6 rows)
+    //
+    // For direction D and frame F in state S:
+    // frameIndex = (stateStartRow + F) * 8 + D
     
-    int baseFrame = 0;
+    int stateStartRow = 0;
     
-    // Idle: 4 frames per direction, 8 directions
+    // Idle: rows 0-3
     for (int dir = 0; dir < 8; ++dir) {
         auto& seq = config.animations[static_cast<int>(AnimationState::Idle)][dir];
-        // Each direction's frames are laid out in columns: dir0_f0, dir1_f0, ..., dir7_f0, dir0_f1, ...
-        seq.startFrame = dir;  // Start at column = direction
+        seq.startFrame = stateStartRow * 8 + dir;  // Row 0, column = dir
         seq.frameCount = kIdleFrames;
         seq.frameDuration = CharacterAnimConfig::kIdleFrameDuration;
         seq.loop = true;
     }
-    baseFrame += kIdleFrames * 8;
+    stateStartRow += kIdleFrames;
     
-    // Walk
+    // Walk: rows 4-11
     for (int dir = 0; dir < 8; ++dir) {
         auto& seq = config.animations[static_cast<int>(AnimationState::Walk)][dir];
-        seq.startFrame = baseFrame + dir;
+        seq.startFrame = stateStartRow * 8 + dir;
         seq.frameCount = kWalkFrames;
         seq.frameDuration = CharacterAnimConfig::kWalkFrameDuration;
         seq.loop = true;
     }
-    baseFrame += kWalkFrames * 8;
+    stateStartRow += kWalkFrames;
     
-    // Attack
+    // Attack: rows 12-17
     for (int dir = 0; dir < 8; ++dir) {
         auto& seq = config.animations[static_cast<int>(AnimationState::Attack)][dir];
-        seq.startFrame = baseFrame + dir;
+        seq.startFrame = stateStartRow * 8 + dir;
         seq.frameCount = kAttackFrames;
         seq.frameDuration = CharacterAnimConfig::kAttackFrameDuration;
         seq.loop = false;
     }
-    baseFrame += kAttackFrames * 8;
+    stateStartRow += kAttackFrames;
     
-    // Hit
+    // Hit: rows 18-20
     for (int dir = 0; dir < 8; ++dir) {
         auto& seq = config.animations[static_cast<int>(AnimationState::Hit)][dir];
-        seq.startFrame = baseFrame + dir;
+        seq.startFrame = stateStartRow * 8 + dir;
         seq.frameCount = kHitFrames;
         seq.frameDuration = CharacterAnimConfig::kHitFrameDuration;
         seq.loop = false;
     }
-    baseFrame += kHitFrames * 8;
+    stateStartRow += kHitFrames;
     
-    // Die
+    // Die: rows 21-26
     for (int dir = 0; dir < 8; ++dir) {
         auto& seq = config.animations[static_cast<int>(AnimationState::Die)][dir];
-        seq.startFrame = baseFrame + dir;
+        seq.startFrame = stateStartRow * 8 + dir;
         seq.frameCount = kDieFrames;
         seq.frameDuration = CharacterAnimConfig::kDieFrameDuration;
         seq.loop = false;

@@ -67,9 +67,21 @@ bool Game::Init()
     // Load player sprite (try real asset first, fallback to placeholder)
     if (!m_player.LoadSprite("assets/sprites/player_spritesheet.png")) {
         // Generate and use placeholder sprite for testing
+        TraceLog(LOG_INFO, "Generating placeholder sprite sheet...");
         Texture2D placeholderTexture = PlaceholderSprite::GeneratePlayerSheet();
-        m_player.LoadSpriteFromTexture(placeholderTexture);
+        TraceLog(LOG_INFO, "Placeholder texture ID: %u, size: %dx%d", 
+                 placeholderTexture.id, placeholderTexture.width, placeholderTexture.height);
+        
+        if (m_player.LoadSpriteFromTexture(placeholderTexture)) {
+            TraceLog(LOG_INFO, "Placeholder sprite loaded successfully!");
+        } else {
+            TraceLog(LOG_WARNING, "Failed to load placeholder sprite!");
+        }
+    } else {
+        TraceLog(LOG_INFO, "Player sprite loaded from file.");
     }
+    
+    TraceLog(LOG_INFO, "Player HasSprite: %s", m_player.HasSprite() ? "true" : "false");
     
     // Center camera on player at start
     m_camera.CenterOn(static_cast<float>(spawnX), static_cast<float>(spawnY));
