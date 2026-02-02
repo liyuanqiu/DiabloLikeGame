@@ -198,6 +198,7 @@
     <None Include="config\mapgen.ini" />
     <None Include="config\player.ini" />
     <None Include="config\tiles.ini" />
+    <None Include="DiabloLikeGame.vcxproj.filters" />
     <None Include="maps\default.ini" />
     <None Include="maps\default.map" />
     <None Include="World\Pathfinder.cpp.new" />
