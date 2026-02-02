@@ -7,6 +7,7 @@
 #include "../World/Pathfinder.h"
 #include "../World/MapGenerator.h"
 #include "../Config/ConfigManager.h"
+#include "../Animation/PlaceholderSprite.h"
 #include <cmath>
 #include <algorithm>
 #include <chrono>
@@ -50,6 +51,7 @@ bool Game::Init()
     // Initialize renderer
     m_renderer.SetCamera(&m_camera);
     
+    
     // Find spawn position and initialize player from config
     int spawnX, spawnY;
     if (!FindPlayerSpawnPosition(spawnX, spawnY)) {
@@ -61,6 +63,13 @@ bool Game::Init()
     m_player.SetCritChance(playerConfig.critChance);
     m_player.SetCritMultiplier(playerConfig.critMultiplier);
     m_player.SetPunchDuration(playerConfig.punchDuration);
+    
+    // Load player sprite (try real asset first, fallback to placeholder)
+    if (!m_player.LoadSprite("assets/sprites/player_spritesheet.png")) {
+        // Generate and use placeholder sprite for testing
+        Texture2D placeholderTexture = PlaceholderSprite::GeneratePlayerSheet();
+        m_player.LoadSpriteFromTexture(placeholderTexture);
+    }
     
     // Center camera on player at start
     m_camera.CenterOn(static_cast<float>(spawnX), static_cast<float>(spawnY));

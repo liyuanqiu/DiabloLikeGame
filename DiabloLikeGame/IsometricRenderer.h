@@ -40,6 +40,7 @@ public:
 private:
     void DrawEntityAt(float tileX, float tileY, Color color, bool isPlayer, 
                       Direction facing, float punchProgress) const;
+    void DrawPlayerSprite(const Player& player) const;
     void DrawArms(float centerX, float bodyTop, float bodyBottom, Color color, 
                   Color outlineColor, Direction facing, float punchProgress) const;
     void DrawDirectionArrow(float screenX, float screenY, Direction facing, Color color) const;

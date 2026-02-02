@@ -68,8 +68,12 @@ public:
     CharacterAnimator(CharacterAnimator&& other) noexcept;
     CharacterAnimator& operator=(CharacterAnimator&& other) noexcept;
     
-    // Load sprite sheet and configure animations
+    // Load sprite sheet from file
     bool Load(const CharacterAnimConfig& config);
+    
+    // Load from existing texture (takes ownership)
+    bool LoadFromTexture(Texture2D texture, const CharacterAnimConfig& config);
+    
     void Unload();
     
     // Update animation (call each frame)

@@ -25,6 +25,12 @@ bool Player::LoadSprite(const std::string& spriteSheetPath)
     return m_animator.Load(config);
 }
 
+bool Player::LoadSpriteFromTexture(Texture2D texture)
+{
+    auto config = CreateDefaultPlayerAnimConfig("");
+    return m_animator.LoadFromTexture(texture, config);
+}
+
 void Player::UnloadSprite()
 {
     m_animator.Unload();

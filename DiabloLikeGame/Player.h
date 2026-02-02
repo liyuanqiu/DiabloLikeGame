@@ -22,6 +22,7 @@ public:
     
     // Load/unload sprite sheet for animation
     bool LoadSprite(const std::string& spriteSheetPath);
+    bool LoadSpriteFromTexture(Texture2D texture);  // Takes ownership of texture
     void UnloadSprite();
 
     // Update player movement (with occupancy tracking and path re-planning)

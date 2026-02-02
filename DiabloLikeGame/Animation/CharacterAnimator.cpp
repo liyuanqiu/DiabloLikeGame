@@ -60,6 +60,27 @@ bool CharacterAnimator::Load(const CharacterAnimConfig& config)
     return true;
 }
 
+bool CharacterAnimator::LoadFromTexture(Texture2D texture, const CharacterAnimConfig& config)
+{
+    Unload();
+    
+    if (texture.id == 0) {
+        return false;
+    }
+    
+    m_config = config;
+    m_texture = texture;  // Takes ownership
+    
+    m_loaded = true;
+    m_currentState = AnimationState::Idle;
+    m_currentDirection = Direction::South;
+    m_currentFrame = 0;
+    m_frameTimer = 0.0f;
+    m_animationFinished = false;
+    
+    return true;
+}
+
 void CharacterAnimator::Unload()
 {
     if (m_loaded) {

@@ -260,8 +260,33 @@ void IsometricRenderer::DrawDirectionArrow(float screenX, float screenY, Directi
 
 void IsometricRenderer::DrawPlayer(const Player& player, Color color) const
 {
-    DrawEntityAt(player.GetRenderX(), player.GetRenderY(), color, true, 
-                 player.GetFacing(), player.GetPunchProgress());
+    // If player has a sprite, render sprite; otherwise use colored entity
+    if (player.HasSprite()) {
+        DrawPlayerSprite(player);
+    } else {
+        DrawEntityAt(player.GetRenderX(), player.GetRenderY(), color, true, 
+                     player.GetFacing(), player.GetPunchProgress());
+    }
+}
+
+void IsometricRenderer::DrawPlayerSprite(const Player& player) const
+{
+    const auto& animator = player.GetAnimator();
+    const Texture2D& texture = animator.GetTexture();
+    Rectangle srcRect = animator.GetSourceRect();
+    
+    // Get screen position
+    const auto pos = TileToScreen(player.GetRenderX(), player.GetRenderY());
+    
+    // Center sprite on tile position
+    // Sprite is drawn with bottom-center at tile position
+    const float destX = pos.x - srcRect.width / 2.0f;
+    const float destY = pos.y - srcRect.height + TILE_HEIGHT / 2.0f + 8.0f;  // Adjust for standing on tile
+    
+    Rectangle destRect = {destX, destY, srcRect.width, srcRect.height};
+    
+    // Draw the sprite
+    DrawTexturePro(texture, srcRect, destRect, {0, 0}, 0.0f, WHITE);
 }
 
 void IsometricRenderer::DrawHealthBar(const Entity& entity, bool isPlayer) const
