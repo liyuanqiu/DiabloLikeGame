@@ -26,9 +26,18 @@ Vector2 IsometricRenderer::ScreenToTile(int screenX, int screenY) const noexcept
 }
 
 void IsometricRenderer::DrawEntityAt(float tileX, float tileY, Color color, bool isPlayer, 
-                                      Direction facing, float punchProgress) const
+                                      Direction facing, float punchProgress, bool isHit) const
 {
-    const auto pos = TileToScreen(tileX, tileY);
+    auto pos = TileToScreen(tileX, tileY);
+    
+    // Apply shake and color tint if hit
+    if (isHit) {
+        const int shakeAmount = 2;
+        pos.x += static_cast<float>(GetRandomValue(-shakeAmount, shakeAmount));
+        
+        // Reddish tint for hit feedback
+        color = {255, 120, 120, 255};
+    }
     
     // Entity dimensions
     constexpr float bodyHeight = 16.0f;
@@ -268,7 +277,7 @@ void IsometricRenderer::DrawPlayer(const Player& player, Color color) const
         DrawPlayerSprite(player);
     } else {
         DrawEntityAt(player.GetRenderX(), player.GetRenderY(), color, true, 
-                     player.GetFacing(), player.GetPunchProgress());
+                     player.GetFacing(), player.GetPunchProgress(), player.IsHit());
     }
 }
 
@@ -288,8 +297,19 @@ void IsometricRenderer::DrawPlayerSprite(const Player& player) const
     
     Rectangle destRect = {destX, destY, srcRect.width, srcRect.height};
     
-    // Draw the sprite
-    DrawTexturePro(texture, srcRect, destRect, {0, 0}, 0.0f, WHITE);
+    // Apply visual effects (Layering: these apply on top of any animation)
+    
+    // 1. Shake Effect if Hit
+    if (player.IsHit()) {
+        const int shakeAmount = 2;
+        destRect.x += GetRandomValue(-shakeAmount, shakeAmount);
+        
+        // 2. Flash Color if Hit (White tint)
+        DrawTexturePro(texture, srcRect, destRect, {0, 0}, 0.0f, {255, 100, 100, 255}); // Red tint for more visibility
+    } else {
+        // Draw normal sprite
+        DrawTexturePro(texture, srcRect, destRect, {0, 0}, 0.0f, WHITE);
+    }
 }
 
 void IsometricRenderer::DrawHealthBar(const Entity& entity, bool isPlayer) const
@@ -492,6 +512,7 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
         bool isPlayer;
         Direction facing;
         float punchProgress;
+        bool isHit;
         const Entity* entity;  // For health bar drawing
     };
     std::vector<EntityInfo> entities;
@@ -499,7 +520,7 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
     
     // Add player
     entities.push_back({playerDepth, playerX, playerY, playerColor, true, 
-                        player.GetFacing(), player.GetPunchProgress(), &player});
+                        player.GetFacing(), player.GetPunchProgress(), player.IsHit(), &player});
     
     // Add visible enemies (use their individual color from config)
     for (const auto& enemy : enemies) {
@@ -509,7 +530,7 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
         const float ex = enemy.GetRenderX();
         const float ey = enemy.GetRenderY();
         entities.push_back({ex + ey, ex, ey, enemy.GetColor(), false, 
-                           enemy.GetFacing(), enemy.GetPunchProgress(), &enemy});
+                           enemy.GetFacing(), enemy.GetPunchProgress(), enemy.IsHit(), &enemy});
     }
     
     // Sort entities by depth (ascending - further from camera first)
@@ -550,7 +571,8 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
                 }
                 
                 if (!drawn) {
-                    DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, e.punchProgress);
+                    DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, 
+                                 e.punchProgress, e.isHit);
                 }
                 
                 // Draw health bar above entity
@@ -579,7 +601,8 @@ void IsometricRenderer::DrawScene(const Map& map, const Player& player, Color pl
         }
         
         if (!drawn) {
-            DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, e.punchProgress);
+            DrawEntityAt(e.renderX, e.renderY, e.color, e.isPlayer, e.facing, 
+                         e.punchProgress, e.isHit);
         }
 
         if (e.entity) {
@@ -652,3 +675,4 @@ void IsometricRenderer::DrawPath(const Player& player, Color color) const
         prevScreen = currScreen;
     }
 }
+

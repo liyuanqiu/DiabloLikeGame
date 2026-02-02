@@ -376,10 +376,11 @@ void Player::UpdateAnimationState()
     
     if (!IsAlive()) {
         newState = AnimationState::Die;
+    } else if (IsPunching()) {
+        // Attack takes priority over Hit animation (visual layer handles hit flash)
+        newState = AnimationState::Attack;
     } else if (IsHit()) {
         newState = AnimationState::Hit;
-    } else if (IsPunching()) {
-        newState = AnimationState::Attack;
     } else if (m_isMoving) {
         newState = AnimationState::Walk;
     } else {

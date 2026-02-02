@@ -44,9 +44,6 @@ void Entity::TakeDamage(int amount) noexcept
     m_isHit = true;
     m_hitTimer = 0.0f;
     
-    // Interrupt punch if hit
-    m_isPunching = false;
-    
     if (m_health <= 0) {
         m_isAlive = false;
         m_isHit = false; // prioritize death animation

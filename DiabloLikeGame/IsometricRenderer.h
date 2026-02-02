@@ -39,7 +39,7 @@ public:
 
 private:
     void DrawEntityAt(float tileX, float tileY, Color color, bool isPlayer, 
-                      Direction facing, float punchProgress) const;
+                      Direction facing, float punchProgress, bool isHit = false) const;
     void DrawPlayerSprite(const Player& player) const;
     void DrawArms(float centerX, float bodyTop, float bodyBottom, Color color, 
                   Color outlineColor, Direction facing, float punchProgress) const;
@@ -50,3 +50,4 @@ private:
 
     GameCamera* m_camera{nullptr};
 };
+
