@@ -75,12 +75,19 @@ Makefile
 TestResults/
 *.coverage
 coverage_report.xml
+coverage.xml
+coverage.cobertura.xml
 *.trx
 
 # Temporary files
 *.tmp
 *.temp
 *~
+
+# Temporary/backup files from editing
+*.new
+*.bak
+*.orig
 
 # Temporary test files
 test_*.ini

@@ -202,6 +202,109 @@ namespace CombatTests
             Assert::IsFalse(state.inCombat);
             Assert::IsTrue(state.engagedEnemies.empty());
         }
+        
+        TEST_METHOD(EnemyCombatState_CleanupThreatList_RemovesDeadEntities)
+        {
+            EnemyCombatState state;
+            Player player;
+            player.Init(5, 5, 100);
+            
+            state.EnterCombat(&player);
+            Assert::AreEqual(size_t(1), state.threatList.size());
+            
+            // Kill the player
+            player.TakeDamage(100);
+            Assert::IsFalse(player.IsAlive());
+            
+            state.CleanupThreatList();
+            
+            Assert::IsTrue(state.threatList.empty());
+            Assert::IsNull(state.currentTarget);
+        }
+        
+        TEST_METHOD(EnemyCombatState_CleanupThreatList_FindsNewTarget)
+        {
+            EnemyCombatState state;
+            Player player1;
+            Player player2;
+            player1.Init(5, 5, 100);
+            player2.Init(7, 7, 100);
+            
+            state.EnterCombat(&player1);
+            state.threatList.insert(&player2);
+            state.currentTarget = &player1;
+            
+            // Kill player1
+            player1.TakeDamage(100);
+            
+            state.CleanupThreatList();
+            
+            // Should find player2 as new target
+            Assert::AreEqual(size_t(1), state.threatList.size());
+            Assert::IsNotNull(state.currentTarget);
+        }
+        
+        TEST_METHOD(EnemyCombatState_HasThreatInVision_ReturnsTrueWhenInRange)
+        {
+            EnemyCombatState state;
+            Player player;
+            player.Init(5, 5, 100);
+            
+            state.EnterCombat(&player);
+            
+            // Enemy at (3, 3), player at (5, 5) - within vision
+            Assert::IsTrue(state.HasThreatInVision(3, 3));
+        }
+        
+        TEST_METHOD(EnemyCombatState_HasThreatInVision_ReturnsFalseWhenOutOfRange)
+        {
+            EnemyCombatState state;
+            Player player;
+            player.Init(50, 50, 100);
+            
+            state.EnterCombat(&player);
+            
+            // Enemy at (3, 3), player at (50, 50) - out of vision
+            Assert::IsFalse(state.HasThreatInVision(3, 3));
+        }
+        
+        TEST_METHOD(EnemyCombatState_HasThreatInVision_ReturnsFalseWhenEmpty)
+        {
+            EnemyCombatState state;
+            Assert::IsFalse(state.HasThreatInVision(5, 5));
+        }
+        
+        TEST_METHOD(PlayerCombatState_CleanupDeadEnemies_RemovesDead)
+        {
+            PlayerCombatState state;
+            std::mt19937 rng(12345);
+            Enemy enemy(5, 5, rng);
+            
+            state.AddEnemy(&enemy);
+            Assert::IsTrue(state.inCombat);
+            
+            // Kill the enemy
+            enemy.TakeDamage(1000);
+            Assert::IsFalse(enemy.IsAlive());
+            
+            state.CleanupDeadEnemies();
+            
+            Assert::IsTrue(state.engagedEnemies.empty());
+            Assert::IsFalse(state.inCombat);
+        }
+        
+        TEST_METHOD(EnemyCombatState_OnDamageReceived)
+        {
+            EnemyCombatState state;
+            Player player;
+            player.Init(5, 5, 100);
+            
+            state.OnDamageReceived(&player);
+            
+            Assert::AreEqual(0.0f, state.lastDamageReceivedTime);
+            Assert::IsTrue(state.threatList.contains(&player));
+            Assert::IsTrue(state.currentTarget == &player);
+        }
     };
 
     TEST_CLASS(AggressiveEnemyTests)
@@ -467,6 +570,261 @@ namespace CombatTests
             
             Assert::IsTrue(enemy.GetCombatState().combatTimer > initialTimer,
                           L"Combat timer should increment during combat");
+        }
+    };
+    
+    TEST_CLASS(EnemyAttackTests)
+    {
+    public:
+        TEST_METHOD(Enemy_TryAttackPlayer_PassiveNeverAttacks)
+        {
+            std::mt19937 rng(12345);
+            auto config = CreatePassiveConfig();
+            Enemy enemy(10, 10, config, rng);
+            Player player;
+            player.Init(11, 10);  // Adjacent
+            
+            bool result = enemy.TryAttackPlayer(&player, rng);
+            Assert::IsFalse(result, L"Passive enemy should never attack");
+        }
+        
+        TEST_METHOD(Enemy_TryAttackPlayer_DefensiveOnlyWhenProvoked)
+        {
+            std::mt19937 rng(12345);
+            auto config = CreateDefensiveConfig();
+            Enemy enemy(10, 10, config, rng);
+            Player player;
+            player.Init(11, 10);  // Adjacent
+            
+            // Not provoked
+            bool result1 = enemy.TryAttackPlayer(&player, rng);
+            Assert::IsFalse(result1, L"Unprovoked defensive enemy should not attack");
+            
+            // Provoke
+            enemy.TakeDamage(10, &player);
+            bool result2 = enemy.TryAttackPlayer(&player, rng);
+            Assert::IsTrue(result2, L"Provoked defensive enemy should attack");
+        }
+        
+        TEST_METHOD(Enemy_TryAttackPlayer_AggressiveAlwaysAttacks)
+        {
+            std::mt19937 rng(12345);
+            auto config = CreateAggressiveConfig();
+            Enemy enemy(10, 10, config, rng);
+            Player player;
+            player.Init(11, 10);  // Adjacent
+            
+            bool result = enemy.TryAttackPlayer(&player, rng);
+            Assert::IsTrue(result, L"Aggressive enemy should attack when adjacent");
+        }
+        
+        TEST_METHOD(Enemy_TryAttackPlayer_NotAdjacentFails)
+        {
+            std::mt19937 rng(12345);
+            auto config = CreateAggressiveConfig();
+            Enemy enemy(10, 10, config, rng);
+            Player player;
+            player.Init(15, 15);  // Not adjacent
+            
+            bool result = enemy.TryAttackPlayer(&player, rng);
+            Assert::IsFalse(result, L"Should not attack non-adjacent player");
+        }
+        
+        TEST_METHOD(Enemy_TryAttackPlayer_DeadPlayerFails)
+        {
+            std::mt19937 rng(12345);
+            auto config = CreateAggressiveConfig();
+            Enemy enemy(10, 10, config, rng);
+            Player player;
+            player.Init(11, 10, 100);
+            player.TakeDamage(100);  // Kill player
+            
+            bool result = enemy.TryAttackPlayer(&player, rng);
+            Assert::IsFalse(result, L"Should not attack dead player");
+        }
+        
+        TEST_METHOD(Enemy_TryAttackPlayer_NullPlayerFails)
+        {
+            std::mt19937 rng(12345);
+            auto config = CreateAggressiveConfig();
+            Enemy enemy(10, 10, config, rng);
+            
+            bool result = enemy.TryAttackPlayer(nullptr, rng);
+            Assert::IsFalse(result, L"Should not attack null player");
+        }
+        
+        TEST_METHOD(Enemy_TryAttackPlayer_DiagonalAdjacent)
+        {
+            std::mt19937 rng(12345);
+            auto config = CreateAggressiveConfig();
+            Enemy enemy(10, 10, config, rng);
+            Player player;
+            player.Init(11, 11);  // Diagonally adjacent
+            
+            bool result = enemy.TryAttackPlayer(&player, rng);
+            Assert::IsTrue(result, L"Should attack diagonally adjacent player");
+        }
+        
+        TEST_METHOD(Enemy_CalculateDamage_ReturnsPositive)
+        {
+            std::mt19937 rng(12345);
+            auto config = CreateAggressiveConfig();
+            config.baseAttack = 50.0f;
+            config.attackVariation = 0.2f;
+            Enemy enemy(10, 10, config, rng);
+            
+            // Calculate damage multiple times
+            for (int i = 0; i < 10; ++i) {
+                int damage = enemy.CalculateDamage(rng);
+                Assert::IsTrue(damage > 0, L"Damage should be positive");
+            }
+        }
+        
+        TEST_METHOD(Enemy_CalculateDamage_WithinVariationRange)
+        {
+            std::mt19937 rng(12345);
+            auto config = CreateAggressiveConfig();
+            config.baseAttack = 100.0f;
+            config.attackVariation = 0.1f;  // 10% variation: 90-110
+            Enemy enemy(10, 10, config, rng);
+            
+            for (int i = 0; i < 20; ++i) {
+                int damage = enemy.CalculateDamage(rng);
+                Assert::IsTrue(damage >= 90 && damage <= 110, 
+                    L"Damage should be within 10% variation range");
+            }
+        }
+    };
+    
+    TEST_CLASS(LeashDistanceTests)
+    {
+    public:
+        TEST_METHOD(IsBeyondLeash_AtSpawn)
+        {
+            EnemyCombatState state;
+            state.spawnX = 10;
+            state.spawnY = 10;
+            
+            Assert::IsFalse(state.IsBeyondLeash(10, 10));
+        }
+        
+        TEST_METHOD(IsBeyondLeash_NearSpawn)
+        {
+            EnemyCombatState state;
+            state.spawnX = 10;
+            state.spawnY = 10;
+            
+            Assert::IsFalse(state.IsBeyondLeash(15, 15));
+        }
+        
+        TEST_METHOD(IsBeyondLeash_FarFromSpawn)
+        {
+            EnemyCombatState state;
+            state.spawnX = 10;
+            state.spawnY = 10;
+            
+            // kLeashDistance = 30, so 35 tiles away should be beyond
+            Assert::IsTrue(state.IsBeyondLeash(45, 45));
+        }
+    };
+    
+    TEST_CLASS(SmallSetTests)
+    {
+    public:
+        TEST_METHOD(SmallSet_InsertAndContains)
+        {
+            SmallSet<int, 8> set;
+            
+            set.insert(1);
+            set.insert(2);
+            set.insert(3);
+            
+            Assert::IsTrue(set.contains(1));
+            Assert::IsTrue(set.contains(2));
+            Assert::IsTrue(set.contains(3));
+            Assert::IsFalse(set.contains(4));
+        }
+        
+        TEST_METHOD(SmallSet_NoDuplicates)
+        {
+            SmallSet<int, 8> set;
+            
+            set.insert(1);
+            set.insert(1);
+            set.insert(1);
+            
+            Assert::AreEqual(size_t(1), set.size());
+        }
+        
+        TEST_METHOD(SmallSet_Erase)
+        {
+            SmallSet<int, 8> set;
+            
+            set.insert(1);
+            set.insert(2);
+            set.insert(3);
+            
+            set.erase(2);
+            
+            Assert::AreEqual(size_t(2), set.size());
+            Assert::IsTrue(set.contains(1));
+            Assert::IsFalse(set.contains(2));
+            Assert::IsTrue(set.contains(3));
+        }
+        
+        TEST_METHOD(SmallSet_EraseNonExistent)
+        {
+            SmallSet<int, 8> set;
+            
+            set.insert(1);
+            set.erase(999);  // Should not crash
+            
+            Assert::AreEqual(size_t(1), set.size());
+        }
+        
+        TEST_METHOD(SmallSet_Clear)
+        {
+            SmallSet<int, 8> set;
+            
+            set.insert(1);
+            set.insert(2);
+            set.clear();
+            
+            Assert::IsTrue(set.empty());
+            Assert::AreEqual(size_t(0), set.size());
+        }
+        
+        TEST_METHOD(SmallSet_Iterator)
+        {
+            SmallSet<int, 8> set;
+            
+            set.insert(1);
+            set.insert(2);
+            set.insert(3);
+            
+            int sum = 0;
+            for (int val : set) {
+                sum += val;
+            }
+            
+            Assert::AreEqual(6, sum);
+        }
+        
+        TEST_METHOD(SmallSet_OverflowIgnored)
+        {
+            SmallSet<int, 3> set;  // Max size 3
+            
+            set.insert(1);
+            set.insert(2);
+            set.insert(3);
+            set.insert(4);  // Should be ignored
+            set.insert(5);  // Should be ignored
+            
+            Assert::AreEqual(size_t(3), set.size());
+            Assert::IsTrue(set.contains(1));
+            Assert::IsTrue(set.contains(2));
+            Assert::IsTrue(set.contains(3));
+            Assert::IsFalse(set.contains(4));
         }
     };
 }

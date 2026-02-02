@@ -64,6 +64,13 @@ public:
         if (IsHit()) return Color{255, 255, 255, 255};
         return m_color; 
     }
+    
+    // Combat actions (public for external systems and testing)
+    // Check if player is adjacent and try to attack
+    bool TryAttackPlayer(Player* player, std::mt19937& rng);
+    
+    // Calculate damage with random variation
+    [[nodiscard]] int CalculateDamage(std::mt19937& rng) const;
 
 private:
 // Behavior updates based on aggression type
@@ -99,12 +106,6 @@ void ClearPath() noexcept { m_path.clear(); m_pathIndex = 0; }
     
     // Get speed multiplier for diagonal vs orthogonal movement
     [[nodiscard]] float GetCurrentSpeedMultiplier() const noexcept;
-    
-    // Check if player is adjacent and try to attack
-    bool TryAttackPlayer(Player* player, std::mt19937& rng);
-    
-    // Calculate damage with random variation
-    [[nodiscard]] int CalculateDamage(std::mt19937& rng) const;
     
     // Identity
     std::string m_typeId{"goblin"};
