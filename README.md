@@ -126,6 +126,33 @@ Tile dimensions:
 
 > **Note**: The project uses `vcpkg.json` manifest mode. raylib and other dependencies will be automatically downloaded and built on first compile.
 
+### Windows SmartScreen Warning
+
+⚠️ **IMPORTANT:** When running this application, you WILL see a "Windows protected your PC" warning from Microsoft Defender SmartScreen. This is expected and normal for unsigned applications.
+
+**The SmartScreen warning is NOT eliminated by this project's configuration files.** To fully resolve it, the executable must be digitally signed with a code signing certificate (see below).
+
+**To run the application:**
+1. Click "More info" on the SmartScreen warning
+2. Click "Run anyway"
+
+**Why this warning appears:**
+- The executable is NOT digitally signed with a trusted certificate
+- Code signing certificates cost $150-600/year from Certificate Authorities
+- This warning is common and expected for open-source and educational projects
+
+**What this project includes (does NOT eliminate warning):**
+- Application manifest with proper execution level (`asInvoker`)
+- Embedded version information and publisher metadata
+- These provide application identity to Windows but the SmartScreen warning still appears
+
+**To actually eliminate the warning (production use):**
+- Purchase a code signing certificate from a trusted Certificate Authority (CA)
+- Sign the executable using `signtool.exe` from the Windows SDK
+- See `CODE_SIGNING.md` for detailed instructions
+- **Only code signing eliminates the SmartScreen warning**
+
+
 ### Configuration
 
 Key settings can be modified in `Core/GameConfig.h`:
