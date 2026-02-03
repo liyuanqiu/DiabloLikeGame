@@ -222,7 +222,7 @@ void Game::TryMoveWithFallback(int dx, int dy)
         // If blocked and was diagonal, try single directions as fallback
         if (dx != 0 && dy != 0) {
             if (!m_player.MoveInDirection(dx, 0, m_map, m_occupancy)) {
-                m_player.MoveInDirection(0, dy, m_map, m_occupancy);
+                (void)m_player.MoveInDirection(0, dy, m_map, m_occupancy);
             }
         }
     }

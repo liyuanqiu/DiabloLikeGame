@@ -41,7 +41,7 @@ float Player::GetCurrentSpeedMultiplier() const noexcept
     // Grid-based timing:
     // - Orthogonal move (1 grid step): 1 time unit
     // - Diagonal move (2 grid steps): 2 time units
-    // sqrt(2) / 2 = 1 / sqrt(2) ≈ 0.70710678f
+    // sqrt(2) / 2 = 1 / sqrt(2) ~= 0.70710678f
     return m_isDiagonalMove ? 0.70710678f : 1.0f;
 }
 

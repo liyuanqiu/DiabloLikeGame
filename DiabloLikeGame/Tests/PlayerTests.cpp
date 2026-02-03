@@ -68,7 +68,7 @@ namespace PlayerTests
             Player player;
             player.Init(5, 5);
             occupancy.SetOccupied(5, 5);
-            player.MoveInDirection(1, 0, map, occupancy);
+            (void)player.MoveInDirection(1, 0, map, occupancy);
             Assert::AreEqual(6, player.GetTileX());
             Assert::AreEqual(5, player.GetTileY());
         }
@@ -80,7 +80,7 @@ namespace PlayerTests
             Player player;
             player.Init(5, 5);
             occupancy.SetOccupied(5, 5);
-            player.MoveInDirection(1, 0, map, occupancy);
+            (void)player.MoveInDirection(1, 0, map, occupancy);
             Assert::IsTrue(player.IsMoving());
         }
 
@@ -116,7 +116,7 @@ namespace PlayerTests
             Player player;
             player.Init(5, 5);
             occupancy.SetOccupied(5, 5);
-            player.MoveInDirection(1, 0, map, occupancy);
+            (void)player.MoveInDirection(1, 0, map, occupancy);
             Assert::IsFalse(player.MoveInDirection(0, 1, map, occupancy));
         }
 
@@ -195,7 +195,7 @@ namespace PlayerTests
             player.Init(5, 5);
             occupancy.SetOccupied(5, 5);
             player.SetMoveSpeed(100.0f);
-            player.MoveInDirection(1, 0, map, occupancy);
+            (void)player.MoveInDirection(1, 0, map, occupancy);
             player.Update(0.1f, map, occupancy);
             Assert::IsTrue(player.GetRenderX() > 5.0f);
         }
@@ -333,7 +333,7 @@ namespace PlayerTests
             Assert::IsTrue(occupancy.IsOccupied(5, 5));
             Assert::IsFalse(occupancy.IsOccupied(6, 5));
             
-            player.MoveInDirection(1, 0, map, occupancy);
+            (void)player.MoveInDirection(1, 0, map, occupancy);
             
             Assert::IsFalse(occupancy.IsOccupied(5, 5));
             Assert::IsTrue(occupancy.IsOccupied(6, 5));
