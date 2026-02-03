@@ -39,6 +39,16 @@ jobs:
       with:
         vcpkgGitCommitId: '01f602195983451bc83e72f4214af2cbc495aa94'
 
+    - name: Integrate vcpkg with MSBuild
+      run: |
+        vcpkg integrate install
+      shell: pwsh
+
+    - name: Install vcpkg dependencies
+      run: |
+        vcpkg install --triplet x64-windows
+      shell: pwsh
+
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
 
