@@ -158,6 +158,7 @@
     <ClInclude Include="Net\IGameDataClient.h" />
     <ClInclude Include="Net\Json.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="World\MapGenerator.h" />
     <ClInclude Include="World\OccupancyMap.h" />
     <ClInclude Include="World\Pathfinder.h" />
@@ -182,9 +183,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">
