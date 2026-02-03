@@ -25,10 +25,12 @@ Code signing digitally signs your executable with a trusted certificate, proving
 ### Step 1: Purchase a Certificate
 
 **Recommended Certificate Authorities:**
-- **DigiCert** - $474/year for EV Code Signing
-- **Sectigo (formerly Comodo)** - $474/year for EV Code Signing  
-- **GlobalSign** - $599/year for EV Code Signing
-- **Certum** - Starting at $149/year for standard OV certificates
+- **DigiCert** - Starting at ~$474/year for EV Code Signing
+- **Sectigo (formerly Comodo)** - Starting at ~$474/year for EV Code Signing  
+- **GlobalSign** - Starting at ~$599/year for EV Code Signing
+- **Certum** - Starting at ~$149/year for standard OV certificates
+
+**Note:** Prices as of 2026 and may vary by region and reseller. Always check current pricing.
 
 **Certificate Types:**
 1. **Standard (OV) Code Signing** (~$150-300/year)
