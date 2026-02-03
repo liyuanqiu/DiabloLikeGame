@@ -1,24 +1,35 @@
 # Code Signing Guide for DiabloLikeGame
 
-## Overview
+## ⚠️ Critical Information
 
-This document provides guidance on code signing for DiabloLikeGame.exe to eliminate Windows SmartScreen warnings in production environments.
+**The manifest and version resources in this project do NOT eliminate Windows SmartScreen warnings.**
 
-## Current State
+This document explains how to **actually eliminate the SmartScreen warning** by digitally signing the executable with a code signing certificate.
 
-The project now includes:
+## Current State vs. Required State
+
+### ✅ What This Project Has (Foundation Only)
 - **Application Manifest** (`app.manifest`) - Defines execution level and compatibility
 - **Version Resources** (`Resource.rc`, `resource.h`) - Embeds publisher and version information
-- **Documentation** - README updated with SmartScreen information
+- **Documentation** - README with SmartScreen information
 
-These changes help Windows recognize the application but don't eliminate SmartScreen warnings completely. A digital code signing certificate is required for production use.
+**Result:** SmartScreen warning STILL appears. Users must click "Run anyway."
+
+### ❌ What's Missing (Required to Eliminate Warning)
+- **Digital code signing certificate** from a trusted Certificate Authority
+- **Signed executable** using signtool.exe
+- **Trust establishment** with Windows SmartScreen
+
+**This document shows how to implement the missing pieces.**
 
 ## What is Code Signing?
 
 Code signing digitally signs your executable with a trusted certificate, proving:
-- The publisher's identity is verified
+- The publisher's identity is verified by a Certificate Authority
 - The code hasn't been tampered with since signing
 - The application comes from a legitimate source
+
+**This is the ONLY way to eliminate the SmartScreen warning.**
 
 ## Obtaining a Code Signing Certificate
 

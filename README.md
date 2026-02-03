@@ -128,26 +128,29 @@ Tile dimensions:
 
 ### Windows SmartScreen Warning
 
-When running the executable for the first time, you may see a "Windows protected your PC" warning from Microsoft Defender SmartScreen. This occurs because the application is not digitally signed with a paid code signing certificate.
+⚠️ **IMPORTANT:** When running this application, you WILL see a "Windows protected your PC" warning from Microsoft Defender SmartScreen. This is expected and normal for unsigned applications.
+
+**The SmartScreen warning is NOT eliminated by this project's configuration files.** To fully resolve it, the executable must be digitally signed with a code signing certificate (see below).
 
 **To run the application:**
 1. Click "More info" on the SmartScreen warning
 2. Click "Run anyway"
 
-**Why this happens:**
-- The executable is not digitally signed with a trusted certificate
-- Code signing certificates typically cost $100-400/year
-- This is common for open-source and educational projects
+**Why this warning appears:**
+- The executable is NOT digitally signed with a trusted certificate
+- Code signing certificates cost $150-600/year from Certificate Authorities
+- This warning is common and expected for open-source and educational projects
 
-**Included SmartScreen mitigation:**
+**What this project includes (does NOT eliminate warning):**
 - Application manifest with proper execution level (`asInvoker`)
 - Embedded version information and publisher metadata
-- These help Windows understand the application but don't eliminate the warning
+- These provide application identity to Windows but the SmartScreen warning still appears
 
-**For production use:**
-- Obtain a code signing certificate from a trusted Certificate Authority (CA)
+**To actually eliminate the warning (production use):**
+- Purchase a code signing certificate from a trusted Certificate Authority (CA)
 - Sign the executable using `signtool.exe` from the Windows SDK
-- This will eliminate SmartScreen warnings and establish trust
+- See `CODE_SIGNING.md` for detailed instructions
+- **Only code signing eliminates the SmartScreen warning**
 
 
 ### Configuration
