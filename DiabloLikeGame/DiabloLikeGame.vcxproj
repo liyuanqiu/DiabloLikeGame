@@ -68,7 +68,8 @@
       </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-          </Link>
+      <ManifestFile>app.manifest</ManifestFile>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -78,7 +79,8 @@
       </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-          </Link>
+      <ManifestFile>app.manifest</ManifestFile>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -87,7 +89,8 @@
       </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-          </Link>
+      <ManifestFile>app.manifest</ManifestFile>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -97,7 +100,8 @@
       </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-          </Link>
+      <ManifestFile>app.manifest</ManifestFile>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Animation\CharacterAnimator.cpp" />
@@ -159,6 +163,7 @@
     <ClInclude Include="World\Pathfinder.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.manifest" />
     <None Include="assets\sprites\SPRITE_SPEC.md" />
     <None Include="config\enemies\goblin.ini" />
     <None Include="config\enemies\skeleton.ini" />
@@ -174,6 +179,12 @@
     <None Include="maps\default.map" />
     <None Include="World\Pathfinder.cpp.new" />
     <None Include="World\Pathfinder.h.new" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">
