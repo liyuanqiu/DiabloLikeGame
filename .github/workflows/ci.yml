@@ -47,7 +47,7 @@ jobs:
 
     - name: Build Solution
       run: |
-        msbuild DiabloLikeGame.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=x64 /p:VcpkgEnableManifest=true
+        msbuild DiabloLikeGame.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=x64 /p:PlatformToolset=v143 /p:VcpkgEnableManifest=true
 
     - name: Run Unit Tests
       run: |
