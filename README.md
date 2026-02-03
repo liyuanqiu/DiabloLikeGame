@@ -163,6 +163,30 @@ mapConfig.waterChance = 0.01f;
 | Pan Camera | Arrow Keys | Drag (right-click) | Right Stick |
 | Change Input Mode | - | Dropdown (top-right) | - |
 
+## Releases
+
+The project uses GitHub Actions for automated builds and releases. When a tag is created, the CI pipeline automatically builds the project and creates a GitHub release with binaries.
+
+### Creating a Release
+
+To create a new release:
+
+```bash
+# Create and push a tag (with or without 'v' prefix)
+git tag v1.0.0    # or git tag 1.0.0
+git push origin v1.0.0  # or git push origin 1.0.0
+```
+
+The CI pipeline will automatically:
+1. Build the Release configuration
+2. Run all tests
+3. Create a GitHub release with the built binaries
+4. Attach `DiabloLikeGame-{version}-x64.zip` to the release
+
+**Supported tag formats:**
+- Tags starting with 'v': `v1.0.0`, `v2.1.3`, etc.
+- Semantic version tags: `1.0.0`, `2.1.3`, etc.
+
 ## Roadmap
 
 - [ ] Jump mechanics for traversing gaps
